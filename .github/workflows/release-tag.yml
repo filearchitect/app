@@ -1,0 +1,114 @@
+name: Release (Tag)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  create-release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Create release if missing
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || \
+            gh release create "${GITHUB_REF_NAME}" --title "File Architect ${GITHUB_REF_NAME}" --notes ""
+
+  build-macos:
+    name: Build macOS (signed)
+    needs: create-release
+    if: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+    runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build app
+        run: pnpm tauri build --config src-tauri/tauri.production.conf.json
+
+      - name: Upload release assets (macOS)
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_TAR="$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | head -n1)"
+          APP_SIG="${APP_TAR}.sig"
+          DMG_FILE="$(ls src-tauri/target/release/bundle/dmg/*.dmg | head -n1)"
+          gh release upload "${GITHUB_REF_NAME}" "$APP_TAR" "$APP_SIG" "$DMG_FILE" --clobber
+
+  build-windows:
+    name: Build Windows
+    needs: create-release
+    runs-on: windows-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build app
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm tauri build --config src-tauri/tauri.production.conf.json --target x86_64-pc-windows-msvc --no-bundle
+
+      - name: Upload release assets (Windows)
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXE_FILE="src-tauri/target/x86_64-pc-windows-msvc/release/filearchitect-app.exe"
+          gh release upload "${GITHUB_REF_NAME}" "$EXE_FILE" --clobber

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
+  },
+  "bundle": {
+    "createUpdaterArtifacts": true,
+    "active": true,
+    "targets": "all",
+    "macOS": {
+      "dmg": {
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        },
+        "windowSize": {
+          "height": 400,
+          "width": 660
+        }
+      },
+
+      "files": {},
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "10.12",
+      "signingIdentity": "Developer ID Application: SEBASTIEN LAVOIE (3C582ZLBF3)",
+      "entitlements": "entitlements.plist",
+      "providerShortName": "3C582ZLBF3"
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "tsp": false,
+      "wix": {
+        "language": "en-US",
+        "template": null,
+        "bannerPath": null,
+        "dialogImagePath": null,
+        "fipsCompliant": false
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY5Q0VENDg1QjU2ODYxRjcKUldUM1lXaTFoZFRPK1NkRjRGVEN1V0VVeXd0SEdXL1hNOS83TnVxZnNGWXlpa2d2N1RYVTBWa2oK",
+      "endpoints": ["https://filearchitect.com/api/updates/{{target}}/latest"]
+    },
+    "deep-link": {
+      "desktop": {
+        "schemes": ["filearchitect"]
+      }
+    }
+  },
+  "productName": "File Architect",
+  "version": "0.10.5",
+  "identifier": "com.filearchitect.app",
+  "app": {
+    "withGlobalTauri": true,
+    "security": {},
+    "windows": [
+      {
+        "title": "File Architect",
+        "width": 1280,
+        "height": 720,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay",
+        "minHeight": 300,
+        "minWidth": 200,
+        "useHttpsScheme": true
+      }
+    ]
+  }
+}

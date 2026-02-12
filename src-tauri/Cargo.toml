@@ -1,0 +1,73 @@
+[package]
+name = "filearchitect-app"
+version = "0.10.5"
+description = "File Architect"
+authors = ["Sébastien Lavoie"]
+license = ""
+repository = ""
+# default-run = "filearchitect-app"
+edition = "2021"
+rust-version = "1.60"
+build = "build.rs"
+
+# [[bin]]
+# name = "filearchitect-app"
+# path = "src/main.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dotenv = "0.15.0"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "2", features = [] }
+dirs = "5.0"
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-http = { version = "2.5.5", features = ["unsafe-headers"] }
+tauri-plugin-fs = "2"
+tauri-plugin-store = "2"
+tauri-plugin-os = "2"
+uuid = { version = "1.7", features = ["v4"] }
+tauri-plugin-process = "2"
+version-compare = "0.1.1"
+tauri-plugin-deep-link = "2.3.0"
+# No zstd feature: avoids zstd-sys C code that needs compiler-rt (_mm_*) when cross-linking to Windows.
+zip = { version = "0.6", default-features = false, features = ["deflate", "time", "bzip2"] }
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "tauri_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dev-dependencies]
+tempfile = "3.10.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.9.4"
+core-foundation-sys = "0.8.6"
+io-kit-sys = "0.4.0"
+
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies]
+machine-uid = "0.5"
+
+
+
+# [features]
+# this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
+# If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
+# DO NOT REMOVE!!
+# custom-protocol = ["tauri/custom-protocol"]
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"
+tauri-plugin-window-state = "2"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2"
+

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XOR Encryptor/Decryptor</title>
+  </head>
+  <body>
+    <h2>XOR Encryptor/Decryptor</h2>
+    <label for="inputText">JSON Input:</label>
+    <textarea
+      id="inputText"
+      placeholder="Enter JSON"
+      rows="10"
+      cols="50"
+    ></textarea>
+    <br /><br />
+    <button onclick="encryptJson()">Encrypt</button>
+    <button onclick="decryptJson()">Decrypt</button>
+    <br /><br />
+    <label for="outputText">Output:</label>
+    <textarea id="outputText" readonly rows="10" cols="50"></textarea>
+
+    <script>
+      const ENCRYPTION_KEY = "FileArchitect2024SecretKey!";
+
+      function xorEncrypt(text, key) {
+        let result = "";
+        for (let i = 0; i < text.length; i++) {
+          const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+          result += String.fromCharCode(charCode);
+        }
+        return btoa(result);
+      }
+
+      function xorDecrypt(encryptedBase64, key) {
+        try {
+          const encrypted = atob(encryptedBase64);
+          let result = "";
+          for (let i = 0; i < encrypted.length; i++) {
+            const charCode =
+              encrypted.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+            result += String.fromCharCode(charCode);
+          }
+          return result;
+        } catch (error) {
+          return "Decryption failed";
+        }
+      }
+
+      function encryptJson() {
+        try {
+          const inputObj = JSON.parse(
+            document.getElementById("inputText").value
+          );
+          for (let key in inputObj) {
+            if (typeof inputObj[key] === "object") {
+              inputObj[key] = xorEncrypt(
+                JSON.stringify(inputObj[key]),
+                ENCRYPTION_KEY
+              );
+            } else {
+              inputObj[key] = xorEncrypt(
+                inputObj[key].toString(),
+                ENCRYPTION_KEY
+              );
+            }
+          }
+          document.getElementById("outputText").value = JSON.stringify(
+            inputObj,
+            null,
+            2
+          );
+        } catch (e) {
+          document.getElementById("outputText").value = "Invalid JSON";
+        }
+      }
+
+      function decryptJson() {
+        try {
+          const inputObj = JSON.parse(
+            document.getElementById("inputText").value
+          );
+          for (let key in inputObj) {
+            let decrypted = xorDecrypt(inputObj[key], ENCRYPTION_KEY);
+            try {
+              inputObj[key] = JSON.parse(decrypted);
+            } catch {
+              inputObj[key] = decrypted;
+            }
+          }
+          document.getElementById("outputText").value = JSON.stringify(
+            inputObj,
+            null,
+            2
+          );
+        } catch (e) {
+          document.getElementById("outputText").value = "Invalid JSON";
+        }
+      }
+    </script>
+  </body>
+</html>
