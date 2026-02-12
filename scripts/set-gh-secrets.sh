@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO="${1:-filearchitect/app}"
+ENV_FILE="${2:-.env}"
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo "Error: gh CLI is not installed."
+  exit 1
+fi
+
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "Error: env file not found: $ENV_FILE"
+  echo "Usage: $0 [owner/repo] [path/to/.env]"
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+set -a
+source "$ENV_FILE"
+set +a
+
+required=(
+  APPLE_CERTIFICATE
+  APPLE_CERTIFICATE_PASSWORD
+  APPLE_SIGNING_IDENTITY
+  APPLE_ID
+  APPLE_PASSWORD
+  APPLE_TEAM_ID
+)
+
+missing=()
+for key in "${required[@]}"; do
+  if [[ -z "${!key:-}" ]]; then
+    missing+=("$key")
+  fi
+done
+
+if (( ${#missing[@]} > 0 )); then
+  echo "Error: missing required variables in $ENV_FILE:"
+  for key in "${missing[@]}"; do
+    echo "  - $key"
+  done
+  exit 1
+fi
+
+echo "Setting secrets on $REPO ..."
+for key in "${required[@]}"; do
+  printf '%s' "${!key}" | gh secret set "$key" --repo "$REPO" --body -
+  echo "  ✓ $key"
+done
+
+echo "Done. Current repo secrets:"
+gh secret list --repo "$REPO"
