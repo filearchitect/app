@@ -30,7 +30,6 @@ jobs:
   build-macos:
     name: Build macOS (signed)
     needs: create-release
-    if: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
     runs-on: macos-latest
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -41,29 +40,51 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Detect signing configuration
+        id: signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${APPLE_CERTIFICATE:-}" && -n "${APPLE_CERTIFICATE_PASSWORD:-}" && -n "${APPLE_SIGNING_IDENTITY:-}" && -n "${APPLE_ID:-}" && -n "${APPLE_PASSWORD:-}" && -n "${APPLE_TEAM_ID:-}" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip info (missing signing secrets)
+        if: steps.signing.outputs.enabled != 'true'
+        run: echo "Skipping macOS signed build because Apple signing secrets are not configured."
+
       - name: Checkout
+        if: steps.signing.outputs.enabled == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Node
+        if: steps.signing.outputs.enabled == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Setup pnpm
+        if: steps.signing.outputs.enabled == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
       - name: Setup Rust
+        if: steps.signing.outputs.enabled == 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install dependencies
+        if: steps.signing.outputs.enabled == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build app
+        if: steps.signing.outputs.enabled == 'true'
         run: pnpm tauri build --config src-tauri/tauri.production.conf.json
 
       - name: Upload release assets (macOS)
+        if: steps.signing.outputs.enabled == 'true'
         shell: bash
         run: |
           set -euo pipefail
