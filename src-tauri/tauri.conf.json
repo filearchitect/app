@@ -71,7 +71,9 @@
   "identifier": "com.filearchitect.app",
   "app": {
     "withGlobalTauri": true,
-    "security": {},
+    "security": {
+      "csp": null
+    },
     "windows": [
       {
         "title": "File Architect",
