@@ -23,6 +23,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Secret scan (filesystem)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" \
+            ghcr.io/trufflesecurity/trufflehog:latest \
+            filesystem --no-verification --fail --exclude-paths=/work/.trufflehog-exclude.txt /work
+
+      - name: Secret scan (git history)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" \
+            ghcr.io/trufflesecurity/trufflehog:latest \
+            git --no-verification --fail file:///work
+
       - name: Create release if missing
         shell: bash
         run: |
