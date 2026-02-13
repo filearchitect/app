@@ -34,8 +34,8 @@ if [[ -z "$CERT_PASS" ]]; then
   exit 1
 fi
 
-base64 -i "$P12_PATH" | tr -d '\n' | gh secret set APPLE_CERTIFICATE --repo "$REPO" --body -
-printf '%s' "$CERT_PASS" | gh secret set APPLE_CERTIFICATE_PASSWORD --repo "$REPO" --body -
+base64 -i "$P12_PATH" | tr -d '\n' | gh secret set APPLE_CERTIFICATE --repo "$REPO"
+printf '%s' "$CERT_PASS" | gh secret set APPLE_CERTIFICATE_PASSWORD --repo "$REPO"
 
 echo "Updated APPLE_CERTIFICATE and APPLE_CERTIFICATE_PASSWORD on $REPO"
 gh secret list --repo "$REPO"
