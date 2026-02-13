@@ -78,7 +78,29 @@ jobs:
             echo "Missing/invalid signing secrets: ${missing[*]}"
             exit 1
           fi
-          echo "Signing secrets detected and validated."
+
+          # Fast preflight: validate cert/password and updater key format before heavy build steps.
+          CERT_PATH="$RUNNER_TEMP/preflight-signing-cert.p12"
+          printf '%s' "$APPLE_CERTIFICATE_RAW" | tr -d '\r\n' | base64 -d > "$CERT_PATH"
+          openssl pkcs12 -in "$CERT_PATH" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD_RAW}" >/dev/null
+
+          KEY="$(printf '%s' "${TAURI_KEY_RAW}" | tr -d '\r')"
+          if [[ "${KEY}" == *"untrusted comment:"* ]]; then
+            KEY_B64="$(printf '%s' "${KEY}" | base64 | tr -d '\r\n')"
+          else
+            KEY_B64="$(printf '%s' "${KEY}" | tr -d '\r\n')"
+          fi
+          DECODED_KEY="$(printf '%s' "${KEY_B64}" | base64 -d 2>/dev/null || true)"
+          if [[ "${DECODED_KEY}" != *"untrusted comment:"* ]]; then
+            echo "Invalid Tauri updater key format. Secret must be raw key text or base64 key text."
+            exit 1
+          fi
+          if [[ -z "$(printf '%s' "${TAURI_KEY_PASSWORD_RAW}" | tr -d '\r')" ]]; then
+            echo "Invalid Tauri updater key password."
+            exit 1
+          fi
+
+          echo "Signing secrets detected and preflight-validated."
 
       - name: Checkout
         uses: actions/checkout@v4
