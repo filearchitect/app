@@ -53,7 +53,8 @@ jobs:
           APPLE_TEAM_ID_RAW: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          if [[ -n "${APPLE_CERTIFICATE_RAW:-}" && -n "${APPLE_CERTIFICATE_PASSWORD_RAW:-}" && -n "${APPLE_SIGNING_IDENTITY_RAW:-}" && -n "${APPLE_ID_RAW:-}" && -n "${APPLE_PASSWORD_RAW:-}" && -n "${APPLE_TEAM_ID_RAW:-}" ]]; then
+          TEAM_ID="$(printf '%s' "${APPLE_TEAM_ID_RAW:-}" | tr -d '\r\n[:space:]\"')"
+          if [[ -n "${APPLE_CERTIFICATE_RAW:-}" && -n "${APPLE_CERTIFICATE_PASSWORD_RAW:-}" && -n "${APPLE_SIGNING_IDENTITY_RAW:-}" && -n "${APPLE_ID_RAW:-}" && -n "${APPLE_PASSWORD_RAW:-}" && "${#TEAM_ID}" -ge 3 ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
@@ -66,6 +67,34 @@ jobs:
       - name: Checkout
         if: steps.signing.outputs.enabled == 'true'
         uses: actions/checkout@v4
+
+      - name: Normalize Apple team ID
+        if: steps.signing.outputs.enabled == 'true'
+        shell: bash
+        env:
+          APPLE_TEAM_ID_RAW: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          trim() {
+            printf '%s' "$1" \
+              | tr -d '\r' \
+              | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/^"//; s/"$//'
+          }
+
+          TEAM_ID="$(trim "${APPLE_TEAM_ID_RAW:-}")"
+          if [[ ${#TEAM_ID} -lt 3 ]]; then
+            FALLBACK_TEAM_ID="$(sed -nE 's/.*"providerShortName":[[:space:]]*"([^"]+)".*/\1/p' src-tauri/tauri.conf.json | head -n1)"
+            TEAM_ID="$(trim "${FALLBACK_TEAM_ID:-}")"
+          fi
+
+          if [[ ${#TEAM_ID} -lt 3 ]]; then
+            echo "APPLE_TEAM_ID is invalid after normalization. Set APPLE_TEAM_ID repo secret to your Apple Team ID."
+            exit 1
+          fi
+
+          echo "::add-mask::$TEAM_ID"
+          echo "APPLE_TEAM_ID=$TEAM_ID" >> "$GITHUB_ENV"
+          echo "Normalized APPLE_TEAM_ID length: ${#TEAM_ID}"
 
       - name: Setup Node
         if: steps.signing.outputs.enabled == 'true'
@@ -135,6 +164,7 @@ jobs:
 
   build-windows:
     name: Build Windows
+    if: ${{ false }}
     needs: create-release
     runs-on: windows-latest
     env:
