@@ -53,7 +53,7 @@ fi
 
 echo "Setting secrets on $REPO ..."
 for key in "${required[@]}"; do
-  printf '%s' "${!key}" | gh secret set "$key" --repo "$REPO" --body -
+  printf '%s' "${!key}" | gh secret set "$key" --repo "$REPO"
   echo "  ✓ $key"
 done
 
