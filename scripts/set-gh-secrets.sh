@@ -27,6 +27,8 @@ required=(
   APPLE_ID
   APPLE_PASSWORD
   APPLE_TEAM_ID
+  TAURI_SIGNING_PRIVATE_KEY
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 )
 
 missing=()
@@ -42,6 +44,11 @@ if (( ${#missing[@]} > 0 )); then
     echo "  - $key"
   done
   exit 1
+fi
+
+# Allow TAURI_SIGNING_PRIVATE_KEY to be provided as a file path.
+if [[ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" && -f "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
+  TAURI_SIGNING_PRIVATE_KEY="$(cat "${TAURI_SIGNING_PRIVATE_KEY}")"
 fi
 
 echo "Setting secrets on $REPO ..."
