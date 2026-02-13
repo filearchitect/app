@@ -99,7 +99,7 @@ jobs:
           printf '%s' "$APPLE_CERTIFICATE_RAW" | tr -d '\r\n' | base64 -d > "$CERT_PATH"
           echo "Decoded cert bytes: $(wc -c < "$CERT_PATH")"
           shasum -a 256 "$CERT_PATH"
-          openssl pkcs12 -legacy -in "$CERT_PATH" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD_RAW}" >/dev/null
+          openssl pkcs12 -in "$CERT_PATH" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD_RAW}" >/dev/null
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
