@@ -237,7 +237,6 @@ jobs:
 
   build-windows:
     name: Build Windows
-    if: ${{ false }}
     needs: create-release
     runs-on: windows-latest
     env:
