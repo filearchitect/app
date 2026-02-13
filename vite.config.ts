@@ -11,6 +11,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    // Use relative asset URLs for packaged Tauri builds.
+    base: "./",
     resolve: {
       alias: [
         {
