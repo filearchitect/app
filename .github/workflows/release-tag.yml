@@ -43,8 +43,7 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Detect signing configuration
-        id: signing
+      - name: Validate signing configuration
         shell: bash
         env:
           APPLE_CERTIFICATE_RAW: ${{ secrets.APPLE_CERTIFICATE }}
@@ -58,22 +57,25 @@ jobs:
         run: |
           set -euo pipefail
           TEAM_ID="$(printf '%s' "${APPLE_TEAM_ID_RAW:-}" | tr -d '\r\n[:space:]\"')"
-          if [[ -n "${APPLE_CERTIFICATE_RAW:-}" && -n "${APPLE_CERTIFICATE_PASSWORD_RAW:-}" && -n "${APPLE_SIGNING_IDENTITY_RAW:-}" && -n "${APPLE_ID_RAW:-}" && -n "${APPLE_PASSWORD_RAW:-}" && "${#TEAM_ID}" -ge 3 && -n "${TAURI_SIGNING_PRIVATE_KEY_RAW:-}" && -n "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD_RAW:-}" ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          missing=()
+          for key in APPLE_CERTIFICATE_RAW APPLE_CERTIFICATE_PASSWORD_RAW APPLE_SIGNING_IDENTITY_RAW APPLE_ID_RAW APPLE_PASSWORD_RAW TAURI_SIGNING_PRIVATE_KEY_RAW TAURI_SIGNING_PRIVATE_KEY_PASSWORD_RAW; do
+            if [[ -z "${!key:-}" ]]; then
+              missing+=("$key")
+            fi
+          done
+          if [[ "${#TEAM_ID}" -lt 3 ]]; then
+            missing+=("APPLE_TEAM_ID_RAW")
           fi
-
-      - name: Skip info (missing signing secrets)
-        if: steps.signing.outputs.enabled != 'true'
-        run: echo "Skipping macOS signed build because Apple signing secrets are not configured."
+          if (( ${#missing[@]} > 0 )); then
+            echo "Missing/invalid signing secrets: ${missing[*]}"
+            exit 1
+          fi
+          echo "Signing secrets detected and validated."
 
       - name: Checkout
-        if: steps.signing.outputs.enabled == 'true'
         uses: actions/checkout@v4
 
       - name: Normalize Apple team ID
-        if: steps.signing.outputs.enabled == 'true'
         shell: bash
         env:
           APPLE_TEAM_ID_RAW: ${{ secrets.APPLE_TEAM_ID }}
@@ -101,23 +103,19 @@ jobs:
           echo "Normalized APPLE_TEAM_ID length: ${#TEAM_ID}"
 
       - name: Setup Node
-        if: steps.signing.outputs.enabled == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Setup pnpm
-        if: steps.signing.outputs.enabled == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
       - name: Setup Rust
-        if: steps.signing.outputs.enabled == 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Import Apple certificate into keychain
-        if: steps.signing.outputs.enabled == 'true'
         shell: bash
         env:
           APPLE_CERTIFICATE_RAW: ${{ secrets.APPLE_CERTIFICATE }}
@@ -143,11 +141,9 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
       - name: Install dependencies
-        if: steps.signing.outputs.enabled == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build app
-        if: steps.signing.outputs.enabled == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -157,7 +153,6 @@ jobs:
           pnpm tauri build --config src-tauri/tauri.production.conf.json
 
       - name: Upload release assets (macOS)
-        if: steps.signing.outputs.enabled == 'true'
         shell: bash
         run: |
           set -euo pipefail
