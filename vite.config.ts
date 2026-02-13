@@ -55,6 +55,8 @@ export default defineConfig(({ mode }) => {
     },
     envPrefix: ["VITE_", "TAURI_ENV_*"],
     build: {
+      // Keep CSS inside JS bundle for desktop packaging reliability.
+      cssCodeSplit: false,
       // Tauri supports es2021
       target: ["es2022", "chrome100", "safari15"],
       // don't minify for debug builds
