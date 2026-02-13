@@ -44,9 +44,16 @@ jobs:
       - name: Detect signing configuration
         id: signing
         shell: bash
+        env:
+          APPLE_CERTIFICATE_RAW: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD_RAW: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY_RAW: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID_RAW: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD_RAW: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID_RAW: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          if [[ -n "${APPLE_CERTIFICATE:-}" && -n "${APPLE_CERTIFICATE_PASSWORD:-}" && -n "${APPLE_SIGNING_IDENTITY:-}" && -n "${APPLE_ID:-}" && -n "${APPLE_PASSWORD:-}" && -n "${APPLE_TEAM_ID:-}" ]]; then
+          if [[ -n "${APPLE_CERTIFICATE_RAW:-}" && -n "${APPLE_CERTIFICATE_PASSWORD_RAW:-}" && -n "${APPLE_SIGNING_IDENTITY_RAW:-}" && -n "${APPLE_ID_RAW:-}" && -n "${APPLE_PASSWORD_RAW:-}" && -n "${APPLE_TEAM_ID_RAW:-}" ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
