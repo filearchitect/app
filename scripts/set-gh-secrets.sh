@@ -57,5 +57,15 @@ for key in "${required[@]}"; do
   echo "  ✓ $key"
 done
 
+# Keep compatibility with workflows/tools that still expect TAURI_PRIVATE_KEY names.
+if [[ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
+  printf '%s' "${TAURI_SIGNING_PRIVATE_KEY}" | gh secret set TAURI_PRIVATE_KEY --repo "$REPO"
+  echo "  ✓ TAURI_PRIVATE_KEY (alias)"
+fi
+if [[ -n "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" ]]; then
+  printf '%s' "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" | gh secret set TAURI_PRIVATE_KEY_PASSWORD --repo "$REPO"
+  echo "  ✓ TAURI_PRIVATE_KEY_PASSWORD (alias)"
+fi
+
 echo "Done. Current repo secrets:"
 gh secret list --repo "$REPO"
