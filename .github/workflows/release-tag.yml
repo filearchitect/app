@@ -141,9 +141,14 @@ jobs:
             echo "Missing TAURI updater signing key/password after normalization."
             exit 1
           fi
-          if [[ "${KEY}" != *"untrusted comment: minisign"* ]]; then
-            echo "TAURI updater private key does not look like a minisign secret key."
-            exit 1
+          if [[ "${KEY}" != *"untrusted comment:"* ]]; then
+            DECODED_KEY="$(printf '%s' "${KEY}" | base64 -d 2>/dev/null || true)"
+            if [[ "${DECODED_KEY}" == *"untrusted comment:"* ]]; then
+              KEY="${DECODED_KEY}"
+            else
+              echo "TAURI updater private key is invalid (expected raw key or base64-encoded key content)."
+              exit 1
+            fi
           fi
 
           echo "::add-mask::$KEY"
