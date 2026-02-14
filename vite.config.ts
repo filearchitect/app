@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
     // Use relative asset URLs for packaged Tauri builds.
     base: "./",
     resolve: {
+      extensions: [".tsx", ".ts", ".jsx", ".js", ".json"],
       alias: [
         {
           find: "@",

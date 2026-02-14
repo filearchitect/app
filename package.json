@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node scripts/strip-crossorigin.mjs",
+    "build": "node scripts/cleanup-ts-emit.mjs && tsc && vite build && node scripts/strip-crossorigin.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:build": "tauri build",
