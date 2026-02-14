@@ -35,6 +35,22 @@ function MainLayout() {
 
   return (
     <>
+      <div
+        style={{
+          position: "fixed",
+          top: 6,
+          right: 8,
+          zIndex: 999999,
+          background: "#ffeb3b",
+          color: "#000",
+          fontSize: 10,
+          padding: "2px 6px",
+          borderRadius: 4,
+          fontFamily: "monospace",
+        }}
+      >
+        BUILD-MARKER test33
+      </div>
       <WelcomeDialog open={showWelcome} onOpenChange={setShowWelcome} />
       <UpdateDialog
         open={showUpdateDialog}
