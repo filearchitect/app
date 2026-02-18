@@ -1,4 +1,10 @@
-import { createFolders as createFoldersWithFunctionalBlanks } from "@/features/structureEditor/utils/structureCreation";
+import {
+  createFolders as createFoldersWithFunctionalBlanks,
+  createFoldersDetailed as createFoldersDetailedWithFunctionalBlanks,
+  getStructureCreationPlan as getStructureCreationPlanWithFunctionalBlanks,
+  type CreateFoldersExecutionResult,
+  type StructureCreationPlan,
+} from "@/features/structureEditor/utils/structureCreation";
 import type { FileNameReplacement } from "@filearchitect/core";
 
 export interface Replacement {
@@ -7,6 +13,8 @@ export interface Replacement {
   replaceInFiles: boolean;
   replaceInFolders: boolean;
 }
+
+export type { CreateFoldersExecutionResult, StructureCreationPlan };
 
 /**
  * High-level helper used by the app. It mirrors the old `createFolders()` API
@@ -57,4 +65,28 @@ export async function createFolders(
       replaceInFolders: true,
     })),
   ] as any);
+}
+
+export async function getStructureCreationPlan(
+  structureString: string,
+  baseDir: string,
+  replacements: Replacement[] = []
+): Promise<StructureCreationPlan> {
+  return await getStructureCreationPlanWithFunctionalBlanks(
+    structureString,
+    baseDir,
+    replacements as any
+  );
+}
+
+export async function createFoldersDetailed(
+  structureString: string,
+  baseDir: string,
+  replacements: Replacement[] = []
+): Promise<CreateFoldersExecutionResult> {
+  return await createFoldersDetailedWithFunctionalBlanks(
+    structureString,
+    baseDir,
+    replacements as any
+  );
 }

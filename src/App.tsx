@@ -27,6 +27,8 @@ function MainLayout() {
     setShowUpdateDialog,
     updateInfo,
     isUpdating,
+    lastUpdateError,
+    skipCurrentVersion,
     handleUpdate,
     showLicenseModal,
     setShowLicenseModal,
@@ -42,6 +44,8 @@ function MainLayout() {
         updateInfo={updateInfo}
         onUpdate={handleUpdate}
         isUpdating={isUpdating}
+        lastError={lastUpdateError}
+        onSkipVersion={skipCurrentVersion}
       />
       <LicenseExpirationModal
         open={showLicenseModal}

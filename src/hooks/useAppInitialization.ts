@@ -13,6 +13,8 @@ export function useAppInitialization() {
     setShowUpdateDialog,
     updateInfo,
     isUpdating,
+    lastUpdateError,
+    skipCurrentVersion,
     handleUpdate,
   } = useAutoUpdater();
   const { license, isLicenseActive, isInitialized, setLicense } =
@@ -47,6 +49,8 @@ export function useAppInitialization() {
     setShowUpdateDialog,
     updateInfo,
     isUpdating,
+    lastUpdateError,
+    skipCurrentVersion,
     handleUpdate,
 
     // License modal

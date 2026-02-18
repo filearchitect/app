@@ -18,6 +18,7 @@ import { PreviewSection } from "@/features/structurePreview/PreviewSection";
 import { PreviewToggleButton } from "@/features/structurePreview/PreviewToggleButton";
 import { useStructures } from "@/features/structures/StructureContext";
 import React from "react";
+import { toast } from "sonner";
 import { useStructureEditor } from "../context/StructureEditorContext";
 import { useAiGeneration } from "../hooks/useAiGeneration";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
@@ -35,6 +36,8 @@ export const StructureCreator: React.FC = () => {
     setEditorContent,
     isLoading,
     handleCreateFolders,
+    executionReport,
+    setExecutionReport,
     handleFileDrop,
     handleMultipleFileDrop,
     structure,
@@ -69,6 +72,43 @@ export const StructureCreator: React.FC = () => {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
   const [structureNameInput, setStructureNameInput] = React.useState("");
   const [isSaving, setIsSaving] = React.useState(false);
+
+  const handleCopyExecutionReport = React.useCallback(async () => {
+    if (!executionReport) return;
+
+    const lines = [
+      `Structure creation report`,
+      `Completed: ${executionReport.completedCount}`,
+      `Failed: ${executionReport.failureCount}`,
+      "",
+      "Failed operations:",
+      ...executionReport.failures.map((failure) => {
+        const source = failure.sourcePath ? ` | source: ${failure.sourcePath}` : "";
+        return `- [${failure.type}] target: ${failure.targetPath}${source} | error: ${failure.message}`;
+      }),
+    ];
+
+    const text = lines.join("\n");
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      toast.success("Failure report copied");
+    } catch (error) {
+      console.error("Failed to copy creation report:", error);
+      toast.error("Failed to copy report");
+    }
+  }, [executionReport]);
 
   // Open the save dialog
   const handleOpenSaveDialog = React.useCallback(() => {
@@ -259,7 +299,7 @@ export const StructureCreator: React.FC = () => {
           <div className="py-4 mt-auto">
             <StructureCreatorActions
               isLoading={isLoading}
-              onSubmit={handleCreateFolders}
+              onSubmit={() => void handleCreateFolders()}
               onSaveAsStructure={handleOpenSaveDialog}
               isSubmitDisabled={isSubmitDisabled}
               hasContent={hasContent}
@@ -275,6 +315,59 @@ export const StructureCreator: React.FC = () => {
         onClose={handleCloseAiModal}
         onSubmit={handleAiSubmit}
       />
+
+      <Dialog
+        open={Boolean(executionReport && executionReport.failureCount > 0)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExecutionReport(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Some operations failed</DialogTitle>
+            <DialogDescription>
+              {executionReport?.completedCount ?? 0} completed,{" "}
+              {executionReport?.failureCount ?? 0} failed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[280px] overflow-y-auto rounded border p-3 text-xs">
+            <ul className="space-y-2">
+              {(executionReport?.failures ?? []).slice(0, 20).map((failure) => (
+                <li key={`${failure.type}-${failure.targetPath}`}>
+                  <div
+                    className="font-medium truncate"
+                    title={`[${failure.type}] ${failure.targetPath}`}
+                  >
+                    [{failure.type}] {failure.targetPath}
+                  </div>
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-muted-foreground">
+                      Error details
+                    </summary>
+                    <div className="text-muted-foreground break-all mt-1">
+                      {failure.message}
+                    </div>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => void handleCopyExecutionReport()}
+            >
+              Copy report
+            </Button>
+            <Button variant="outline" onClick={() => setExecutionReport(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Save Structure Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent className="sm:max-w-md">
