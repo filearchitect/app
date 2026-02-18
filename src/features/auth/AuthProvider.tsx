@@ -21,6 +21,7 @@ interface AuthContextType {
   isInitialized: boolean;
   setIsLicenseExpired: (expired: boolean) => void;
   activateLicense: (licenseKey: string) => Promise<StoredLicense | null>;
+  refreshLicense: () => Promise<StoredLicense | null>;
   validateLicense: () => Promise<void>;
   setLicense: (license: StoredLicense | null) => void;
 }
@@ -92,6 +93,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshLicense = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const nextLicense = await LicenseService.checkLicense();
+      setLicense(nextLicense);
+      setIsLicenseExpired(
+        nextLicense ? LicenseService.isLicenseExpired(nextLicense) : true
+      );
+      return nextLicense;
+    } catch (err) {
+      const errorMessage =
+        err instanceof LicenseValidationError
+          ? err.message
+          : err instanceof LicenseError
+          ? `License error: ${err.message}`
+          : handleError(err);
+      setError(errorMessage);
+      setLicense(null);
+      setIsLicenseExpired(true);
+      return null;
+    } finally {
+      setIsLoading(false);
+      setIsInitialized(true);
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -103,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isInitialized,
         setIsLicenseExpired,
         activateLicense,
+        refreshLicense,
         validateLicense,
         setLicense,
       }}

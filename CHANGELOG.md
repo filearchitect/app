@@ -14,10 +14,11 @@
 - Improved updater feedback by surfacing technical error details in the update dialog.
 - Improved structure creation flow with non-blocking preflight conflict warnings and a detailed partial-failure report.
 - Improved structure creation failure dialog readability with truncated path rows and expandable error details.
+- License activation now refreshes account state in-place (no full app reload), including closing activation dialogs on success.
 
 ### Fixed
 
-- No user-facing fixes yet.
+- Removed hard page reload behavior after license activation to avoid stale-state and UX loop issues.
 
 ## 0.9.1
 

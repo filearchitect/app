@@ -54,7 +54,8 @@ const CheckIcon = () => (
 );
 
 const AccountPreferences: React.FC = () => {
-  const { license, isLoading, error, activateLicense } = useAuthContext();
+  const { license, isLoading, error, activateLicense, refreshLicense } =
+    useAuthContext();
   const [licenseKey, setLicenseKey] = useState("");
   const [isActivating, setIsActivating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -67,9 +68,10 @@ const AccountPreferences: React.FC = () => {
     try {
       const result = await activateLicense(licenseKey.trim());
       if (result) {
+        await refreshLicense();
         toast.success("License activated successfully");
-        // Refresh page to reflect updated license
-        window.location.reload();
+        setLicenseKey("");
+        setIsDialogOpen(false);
       }
     } catch (err) {
       toast.error(
