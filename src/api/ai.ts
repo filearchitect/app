@@ -11,6 +11,24 @@ interface DeepInfraResponse {
   }>;
 }
 
+function sanitizeStructureOutput(content: string): string {
+  const noThinkBlocks = content.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  const noMarkdownFences = noThinkBlocks.replace(/```[\s\S]*?```/g, "");
+  const lines = noMarkdownFences
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0)
+    .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, ""));
+
+  // Accept only tab-indented file/folder lines with simple safe characters.
+  const structureLines = lines.filter((line) =>
+    /^\t*[A-Za-z0-9][A-Za-z0-9 _.-]*$/.test(line)
+  );
+
+  return structureLines.join("\n");
+}
+
 const namingStyles = [
   "example-folder-name",
   "example_folder_name",
@@ -63,6 +81,7 @@ Please follow these rules strictly:
 8. Use _ before incrementing numbers in names if needed
 9. Try to aim around 10-15 items in the structure and never go over 30
 10. Do not create files starting with a dot (.)
+11. Never output reasoning, chain-of-thought, or tags like <think>. Output only the final structure.
 
 Example of desired output format:
 root
@@ -105,8 +124,18 @@ root
     const data: DeepInfraResponse = await response.json();
 
     if (data.choices && data.choices.length > 0) {
-      console.log(data.choices[0].message.content);
-      return { data: data.choices[0].message.content };
+      const rawContent = data.choices[0].message.content || "";
+      const sanitizedContent = sanitizeStructureOutput(rawContent);
+
+      if (!sanitizedContent) {
+        return {
+          error:
+            "AI response format was invalid. Please try again with a shorter prompt.",
+        };
+      }
+
+      console.log(sanitizedContent);
+      return { data: sanitizedContent };
     } else {
       return { error: "No response received from DeepInfra API" };
     }
