@@ -8,7 +8,9 @@ import { compareVersions } from "compare-versions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-const DOWNLOAD_PAGE_PATH = "/download";
+const GITHUB_REPO = "filearchitect/app";
+const GITHUB_LATEST_RELEASE_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+const GITHUB_LATEST_RELEASE_PAGE = `https://github.com/${GITHUB_REPO}/releases/latest`;
 
 type UpdateInfo = {
   version: string;
@@ -20,9 +22,9 @@ type UpdateInfo = {
 };
 
 const isLocalDev = import.meta.env.VITE_DEV_MODE === "true";
-const baseUrl = import.meta.env.VITE_APP_URL ?? "https://filearchitect.com";
-// Tauri plugin uses endpoints from tauri.conf (with {{target}} = platform); this is for logging only
-const expectedEndpoint = `${baseUrl}/api/updates/{{target}}/latest`;
+// Tauri plugin updater endpoint is configured in tauri.conf / tauri.production.conf
+const expectedEndpoint =
+  "https://github.com/filearchitect/app/releases/latest/download/latest.json";
 
 export function useAutoUpdater() {
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
@@ -64,21 +66,22 @@ export function useAutoUpdater() {
 
       console.log("Update Check Configuration:", {
         isLocalDev,
-        baseUrl,
         expectedEndpoint,
         currentVersion,
         target,
       });
 
-      // Windows: no signing key — just check version and prompt user to download from website
+      // Windows: no in-app updater install path yet — check GitHub release and open manual download
       if (target === "windows") {
-        const res = await fetch(`${baseUrl}/api/updates/windows/latest`);
+        const res = await fetch(GITHUB_LATEST_RELEASE_API, {
+          headers: { Accept: "application/vnd.github+json" },
+        });
         if (!res.ok) return false;
         const data = (await res.json()) as {
-          version?: string;
-          notes?: string;
+          tag_name?: string;
+          body?: string;
         };
-        const remoteVersion = data.version?.replace(/^v/, "") ?? "";
+        const remoteVersion = data.tag_name?.replace(/^v/, "") ?? "";
         if (
           !remoteVersion ||
           compareVersions(remoteVersion, currentVersion) <= 0
@@ -87,9 +90,9 @@ export function useAutoUpdater() {
         }
         setUpdateInfo({
           version: remoteVersion,
-          body: data.notes,
+          body: data.body,
           manualDownload: true,
-          downloadUrl: `${baseUrl}${DOWNLOAD_PAGE_PATH}`,
+          downloadUrl: GITHUB_LATEST_RELEASE_PAGE,
         });
         setShowUpdateDialog(true);
         return true;

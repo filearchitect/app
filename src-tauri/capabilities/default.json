@@ -45,7 +45,8 @@
         { "url": "http://filearchitect-website.test/*" },
         { "url": "https://filearchitect-website.test/*" },
         { "url": "https://cdn.statically.io/*" },
-        { "url": "https://api.deepinfra.com/*" }
+        { "url": "https://api.deepinfra.com/*" },
+        { "url": "https://api.github.com/*" }
       ]
     },
     {
@@ -59,7 +60,8 @@
         { "url": "https://api.replicate.com/*" },
         { "url": "https://stream-g.svc.rno2.c.replicate.net/*" },
         { "url": "https://api.deepinfra.com/*" },
-        { "url": "https://api.openai.com/*" }
+        { "url": "https://api.openai.com/*" },
+        { "url": "https://api.github.com/*" }
       ],
       "dangerous": {
         "acceptInvalidCerts": true,

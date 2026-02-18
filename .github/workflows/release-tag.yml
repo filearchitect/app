@@ -265,6 +265,49 @@ jobs:
           unset APPLE_CERTIFICATE_PASSWORD
           pnpm tauri build --config src-tauri/tauri.production.conf.json
 
+      - name: Generate updater manifest (latest.json)
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_TAR="$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | head -n1)"
+          APP_SIG="${APP_TAR}.sig"
+          APP_TAR_NAME="$(basename "$APP_TAR")"
+          APP_TAR_URL_NAME="${APP_TAR_NAME// /%20}"
+          APP_SIG_CONTENT="$(cat "$APP_SIG")"
+          VERSION="${GITHUB_REF_NAME#v}"
+          PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          RUNNER_ARCH="$(uname -m)"
+          if [[ "$RUNNER_ARCH" == "arm64" ]]; then
+            TARGET_ARCH="aarch64"
+          else
+            TARGET_ARCH="x86_64"
+          fi
+          TARGET_KEY="darwin-${TARGET_ARCH}"
+
+          APP_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${APP_TAR_URL_NAME}"
+
+          jq -n \
+            --arg version "$VERSION" \
+            --arg notes "" \
+            --arg pub_date "$PUB_DATE" \
+            --arg target_key "$TARGET_KEY" \
+            --arg signature "$APP_SIG_CONTENT" \
+            --arg url "$APP_URL" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                ($target_key): {
+                  signature: $signature,
+                  url: $url
+                }
+              }
+            }' > latest.json
+
+          cat latest.json
+
       - name: Upload release assets (macOS)
         shell: bash
         run: |
@@ -272,7 +315,7 @@ jobs:
           APP_TAR="$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | head -n1)"
           APP_SIG="${APP_TAR}.sig"
           DMG_FILE="$(ls src-tauri/target/release/bundle/dmg/*.dmg | head -n1)"
-          gh release upload "${GITHUB_REF_NAME}" "$APP_TAR" "$APP_SIG" "$DMG_FILE" --clobber
+          gh release upload "${GITHUB_REF_NAME}" "$APP_TAR" "$APP_SIG" "$DMG_FILE" latest.json --clobber
 
   build-windows:
     name: Build Windows
