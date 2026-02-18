@@ -85,6 +85,7 @@ jobs:
     needs: create-release
     runs-on: macos-latest
     env:
+      VITE_APP_URL: https://filearchitect.com
       VITE_API_URL: https://filearchitect.com/api/v1
       VITE_DEEPINFRA_API_KEY: ${{ secrets.VITE_DEEPINFRA_API_KEY || secrets.DEEPINFRA_API_KEY }}
       APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -397,6 +398,7 @@ jobs:
     needs: create-release
     runs-on: windows-latest
     env:
+      VITE_APP_URL: https://filearchitect.com
       VITE_API_URL: https://filearchitect.com/api/v1
       VITE_DEEPINFRA_API_KEY: ${{ secrets.VITE_DEEPINFRA_API_KEY || secrets.DEEPINFRA_API_KEY }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

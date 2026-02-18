@@ -1,20 +1,16 @@
 import { Button } from "@/components/ui/button";
-import { open as openPage } from "@tauri-apps/plugin-shell";
+import { appUrl, openLink } from "@/lib/utils";
 import React from "react";
 
 interface PurchaseOptionsSectionProps {
   onShowActivateForm: () => void;
 }
 
-const openPathInBrowser = async (path: string) => {
-  await openPage(path);
-};
-
 export const PurchaseOptionsSection: React.FC<PurchaseOptionsSectionProps> = ({
   onShowActivateForm,
 }) => {
   const handlePurchase = () => {
-    openPathInBrowser(`${import.meta.env.VITE_APP_URL}/pricing`);
+    openLink(appUrl("/pricing"));
   };
 
   return (

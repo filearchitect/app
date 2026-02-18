@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import { openLink } from "@/lib/utils";
+import { appUrl, openLink } from "@/lib/utils";
 import { format } from "date-fns";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -193,9 +193,7 @@ const AccountPreferences: React.FC = () => {
         <div className="flex justify-end py-6">
           <Button
             variant="outline"
-            onClick={() =>
-              openLink(`${import.meta.env.VITE_APP_URL}/dashboard`)
-            }
+            onClick={() => openLink(appUrl("/dashboard"))}
           >
             Manage License
           </Button>
@@ -228,9 +226,7 @@ const AccountPreferences: React.FC = () => {
               <Button
                 variant="default"
                 className="flex-1 "
-                onClick={() =>
-                  openLink(`${import.meta.env.VITE_APP_URL}/purchase`)
-                }
+                onClick={() => openLink(appUrl("/purchase"))}
               >
                 Purchase License
               </Button>

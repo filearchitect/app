@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { StoredLicense } from "@/features/auth/types";
-import { open as openPage } from "@tauri-apps/plugin-shell";
+import { appUrl, openLink } from "@/lib/utils";
 import React from "react";
 
 interface LicenseInfoSectionProps {
@@ -14,10 +14,6 @@ const formatDate = (dateString?: string) => {
     month: "long",
     day: "numeric",
   });
-};
-
-const openPathInBrowser = async (path: string) => {
-  await openPage(path);
 };
 
 export const LicenseInfoSection: React.FC<LicenseInfoSectionProps> = ({
@@ -53,9 +49,7 @@ export const LicenseInfoSection: React.FC<LicenseInfoSectionProps> = ({
       <div className="flex justify-end mt-6">
         <Button
           variant="outline"
-          onClick={() =>
-            openPathInBrowser(`${import.meta.env.VITE_APP_URL}/dashboard`)
-          }
+          onClick={() => openLink(appUrl("/dashboard"))}
         >
           Manage License
         </Button>

@@ -1,6 +1,5 @@
 export const APP_CONFIG = {
   FREE_VERSION_LIMIT: parseInt(import.meta.env.VITE_MAX_LINES_FREE_VERSION),
-  APP_URL: import.meta.env.VITE_APP_URL,
   DEFAULT_DRAG_DISTANCE: 8,
   MOBILE_BREAKPOINT: 768,
 } as const;

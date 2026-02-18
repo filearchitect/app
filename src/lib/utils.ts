@@ -3,6 +3,8 @@ import { clsx, type ClassValue } from "clsx";
 import { toast } from "sonner";
 import { twMerge } from "tailwind-merge";
 
+const DEFAULT_APP_URL = "https://filearchitect.com";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -35,4 +37,20 @@ export async function openLink(url: string) {
 
     toast.error("Failed to open link");
   }
+}
+
+export function getAppBaseUrl() {
+  const configured = (import.meta.env.VITE_APP_URL || "").trim();
+  if (!configured) {
+    return DEFAULT_APP_URL;
+  }
+  return configured.replace(/\/+$/, "");
+}
+
+export function appUrl(path: string) {
+  const base = getAppBaseUrl();
+  if (!path) {
+    return base;
+  }
+  return `${base}/${path.replace(/^\/+/, "")}`;
 }

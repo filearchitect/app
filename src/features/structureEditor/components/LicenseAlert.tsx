@@ -1,7 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { APP_CONFIG } from "@/config/constants";
-import { open as openPage } from "@tauri-apps/plugin-shell";
+import { appUrl, openLink } from "@/lib/utils";
 import React from "react";
 
 interface LicenseAlertProps {
@@ -32,7 +32,7 @@ export const LicenseAlert: React.FC<LicenseAlertProps> = React.memo(
           </div>
           <Button
             className="bg-primary hover:bg-primary/90 text-white font-medium"
-            onClick={() => openPage(`${APP_CONFIG.APP_URL}/pricing`)}
+            onClick={() => openLink(appUrl("/pricing"))}
           >
             Upgrade Now
           </Button>
