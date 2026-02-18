@@ -1,6 +1,8 @@
 import { fetch } from "@tauri-apps/plugin-http";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const DEFAULT_API_BASE_URL = "https://filearchitect.com/api/v1";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL?.trim() || DEFAULT_API_BASE_URL;
 /**
  * Generic API response type
  */
@@ -19,6 +21,10 @@ export async function makeApiRequest<T>(
   console.log("payload", payload);
 
   try {
+    if (!API_BASE_URL) {
+      throw new Error("VITE_API_URL is not configured");
+    }
+
     const url = `${API_BASE_URL}${endpoint}`;
     console.log("Making API request to:", url);
 

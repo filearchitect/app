@@ -73,6 +73,7 @@ jobs:
     needs: create-release
     runs-on: macos-latest
     env:
+      VITE_API_URL: https://filearchitect.com/api/v1
       APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
@@ -279,6 +280,7 @@ jobs:
     needs: create-release
     runs-on: windows-latest
     env:
+      VITE_API_URL: https://filearchitect.com/api/v1
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
