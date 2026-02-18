@@ -1,7 +1,11 @@
 import { getStoreValue } from "@/api/store";
 import { useStructures } from "@/features/structures/StructureContext";
-import { createFolders } from "@/lib/filearchitect";
-import { handleAsyncError } from "@/utils/errorHandling";
+import {
+  createFoldersDetailed,
+  getStructureCreationPlan,
+  type CreateFoldersExecutionResult,
+  type StructureCreationPlan,
+} from "@/lib/filearchitect";
 import {
   processFileForImport,
   processMultipleFilesForImport,
@@ -17,6 +21,12 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
   const [baseDir, setBaseDir] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [autoOpenFolder, setAutoOpenFolder] = useState(false);
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
+  const [createPlan, setCreatePlan] = useState<StructureCreationPlan | null>(
+    null
+  );
+  const [executionReport, setExecutionReport] =
+    useState<CreateFoldersExecutionResult | null>(null);
 
   const { structures, editorContent, setEditorContent } = useStructures();
 
@@ -38,50 +48,86 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
     initializeState();
   }, []);
 
+  const runFolderCreation = useCallback(async () => {
+    setIsLoading(true);
+
+    const result = await createFoldersDetailed(
+      editorContent,
+      baseDir,
+      options.replacements || []
+    );
+
+    if (result.failureCount === 0) {
+      toast.success("Folders created successfully", {
+        action: autoOpenFolder
+          ? undefined
+          : {
+              label: "Open Folder",
+              onClick: async () => {
+                try {
+                  await invoke("open_folder_command", { path: baseDir });
+                  console.log("Folder opened successfully");
+                } catch (error) {
+                  console.error("Error opening folder:", error);
+                  toast.error("Failed to open folder");
+                }
+              },
+            },
+      });
+    } else if (result.partialSuccess) {
+      toast.warning("Created with partial failures", {
+        description: `${result.completedCount} completed, ${result.failureCount} failed.`,
+      });
+      setExecutionReport(result);
+    } else {
+      toast.error("Failed to create structure", {
+        description: `${result.failureCount} operation${result.failureCount === 1 ? "" : "s"} failed.`,
+      });
+      setExecutionReport(result);
+    }
+
+    if (autoOpenFolder && result.completedCount > 0) {
+      try {
+        await openFolder(result.baseDir);
+        console.log("Folder opened automatically");
+      } catch (error) {
+        console.error("Error opening folder:", error);
+        toast.error("Failed to open folder automatically");
+      }
+    }
+
+    setIsLoading(false);
+    return result;
+  }, [autoOpenFolder, baseDir, editorContent, options.replacements]);
+
   const handleCreateFolders = useCallback(
-    async (e?: React.FormEvent) => {
+    async (e?: React.FormEvent, confirmCreate: boolean = false) => {
       e?.preventDefault();
       if (isLoading || !editorContent.trim() || !baseDir) return;
 
-      setIsLoading(true);
-
-      const result = await handleAsyncError(
-        () => createFolders(editorContent, baseDir, options.replacements || []),
-        "Failed to create folders"
-      );
-
-      if (result) {
-        toast.success("Folders created successfully", {
-          action: autoOpenFolder
-            ? undefined
-            : {
-                label: "Open Folder",
-                onClick: async () => {
-                  try {
-                    await invoke("open_folder_command", { path: baseDir });
-                    console.log("Folder opened successfully");
-                  } catch (error) {
-                    console.error("Error opening folder:", error);
-                    toast.error("Failed to open folder");
-                  }
-                },
-              },
-        });
-
-        if (autoOpenFolder) {
-          try {
-            await openFolder(result);
-            console.log("Folder opened automatically");
-          } catch (error) {
-            console.error("Error opening folder:", error);
-            toast.error("Failed to open folder automatically");
-          }
+      if (!confirmCreate) {
+        setIsLoading(true);
+        try {
+          const plan = await getStructureCreationPlan(
+            editorContent,
+            baseDir,
+            options.replacements || []
+          );
+          setCreatePlan(plan);
+          setShowCreateConfirm(true);
+        } catch (error) {
+          console.error("Failed to prepare creation plan:", error);
+          toast.error("Failed to prepare structure creation");
+        } finally {
+          setIsLoading(false);
         }
+        return;
       }
 
-      setIsLoading(false);
+      setShowCreateConfirm(false);
+      await runFolderCreation();
     },
-    [isLoading, editorContent, baseDir, autoOpenFolder, options.replacements]
+    [isLoading, editorContent, baseDir, options.replacements, runFolderCreation]
   );
 
   const handleBrowse = useCallback(async () => {
@@ -137,6 +183,11 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
     setBaseDir,
     isLoading,
     autoOpenFolder,
+    showCreateConfirm,
+    setShowCreateConfirm,
+    createPlan,
+    executionReport,
+    setExecutionReport,
     handleCreateFolders,
     handleBrowse,
     handleFileDrop,

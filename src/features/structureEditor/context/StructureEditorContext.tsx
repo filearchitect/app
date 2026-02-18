@@ -1,5 +1,9 @@
 import { useAuthContext } from "@/features/auth/AuthProvider";
 import { useStructures } from "@/features/structures/StructureContext";
+import type {
+  CreateFoldersExecutionResult,
+  StructureCreationPlan,
+} from "@/lib/filearchitect";
 import { Replacement } from "@/types";
 import React, { createContext, ReactNode, useContext } from "react";
 import { useStructure } from "../hooks/useStructure";
@@ -14,9 +18,17 @@ interface StructureEditorContextType {
 
   // Loading state
   isLoading: boolean;
+  showCreateConfirm: boolean;
+  setShowCreateConfirm: (value: boolean) => void;
+  createPlan: StructureCreationPlan | null;
+  executionReport: CreateFoldersExecutionResult | null;
+  setExecutionReport: (report: CreateFoldersExecutionResult | null) => void;
 
   // Actions
-  handleCreateFolders: () => void;
+  handleCreateFolders: (
+    e?: React.FormEvent,
+    confirmCreate?: boolean
+  ) => Promise<void>;
   handleBrowse: () => void;
   handleFileDrop: (filePath: string, shiftKey: boolean) => void;
   handleMultipleFileDrop: (filePaths: string[], shiftKey: boolean) => void;
@@ -60,6 +72,11 @@ export const StructureEditorProvider: React.FC<{
     editorContent,
     setEditorContent,
     isLoading,
+    showCreateConfirm,
+    setShowCreateConfirm,
+    createPlan,
+    executionReport,
+    setExecutionReport,
     handleCreateFolders,
     handleBrowse,
     handleFileDrop,
@@ -109,6 +126,11 @@ export const StructureEditorProvider: React.FC<{
       editorContent,
       setEditorContent,
       isLoading,
+      showCreateConfirm,
+      setShowCreateConfirm,
+      createPlan,
+      executionReport,
+      setExecutionReport,
       handleCreateFolders,
       handleBrowse,
       handleFileDrop,
@@ -127,6 +149,11 @@ export const StructureEditorProvider: React.FC<{
       editorContent,
       setEditorContent,
       isLoading,
+      showCreateConfirm,
+      setShowCreateConfirm,
+      createPlan,
+      executionReport,
+      setExecutionReport,
       handleCreateFolders,
       handleBrowse,
       handleFileDrop,

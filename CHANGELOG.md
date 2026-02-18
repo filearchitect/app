@@ -6,11 +6,13 @@
 
 - Initial changelog workflow documentation and PR checklist.
 - Added updater option to skip a specific version from recurring prompts.
+- Added a preflight creation summary dialog showing operation counts and existing-target conflicts before writing files.
 
 ### Changed
 
 - Updated expired-trial modal copy and styling for a cleaner layout and consistent primary action button color.
 - Improved updater feedback by surfacing technical error details in the update dialog.
+- Improved structure creation reporting to continue through partial failures and show a detailed failed-operations report.
 
 ### Fixed
 

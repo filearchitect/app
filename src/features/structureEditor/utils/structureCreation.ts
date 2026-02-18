@@ -16,6 +16,37 @@ const REMOTE_CACHE_DURATION = 0;
 // Cache for local blank files we've already checked
 const localFilesCache = new Map<string, boolean>();
 
+export interface StructureCreationSummary {
+  totalOperations: number;
+  createFileCount: number;
+  createDirectoryCount: number;
+  copyCount: number;
+  moveCount: number;
+  existingTargetCount: number;
+  existingTargets: string[];
+}
+
+export interface StructureCreationPlan {
+  summary: StructureCreationSummary;
+}
+
+export interface FailedStructureOperation {
+  type: string;
+  targetPath: string;
+  sourcePath?: string;
+  isDirectory: boolean;
+  message: string;
+}
+
+export interface CreateFoldersExecutionResult {
+  baseDir: string;
+  summary: StructureCreationSummary;
+  completedCount: number;
+  failureCount: number;
+  failures: FailedStructureOperation[];
+  partialSuccess: boolean;
+}
+
 async function getBlankFilesDir(): Promise<string> {
   const documentsDir = await documentDir();
   const blankFilesDir = await join(documentsDir, "FileArchitect", "BlankFiles");
@@ -276,7 +307,40 @@ async function createEmptyOrFunctionalFile(path: string): Promise<void> {
   }
 }
 
-export async function createFolders(
+function buildReplacementGroups(
+  replacements: Array<{
+    search: string;
+    replace: string;
+    replaceInFiles: boolean;
+    replaceInFolders: boolean;
+  }>
+) {
+  const valid = replacements.filter(
+    (r) => r.search.trim().length > 0 && r.replace.trim().length > 0
+  );
+
+  const allReplacements: FileNameReplacement[] = valid
+    .filter((r) => r.replaceInFiles && r.replaceInFolders)
+    .map(({ search, replace }) => ({ search, replace }));
+
+  const fileReplacements: FileNameReplacement[] = [
+    ...allReplacements,
+    ...valid
+      .filter((r) => r.replaceInFiles)
+      .map(({ search, replace }) => ({ search, replace })),
+  ];
+
+  const folderReplacements: FileNameReplacement[] = [
+    ...allReplacements,
+    ...valid
+      .filter((r) => r.replaceInFolders)
+      .map(({ search, replace }) => ({ search, replace })),
+  ];
+
+  return { allReplacements, fileReplacements, folderReplacements };
+}
+
+async function getStructureOperations(
   structureString: string,
   baseDir: string,
   replacements: Array<{
@@ -285,27 +349,9 @@ export async function createFolders(
     replaceInFiles: boolean;
     replaceInFolders: boolean;
   }>
-): Promise<string> {
-  // First get replacements that apply to both files and folders
-  const allReplacements: FileNameReplacement[] = replacements
-    .filter((r) => r.replaceInFiles && r.replaceInFolders)
-    .map(({ search, replace }) => ({ search, replace }));
-
-  // Get file-only replacements (including those that apply to both)
-  const fileReplacements: FileNameReplacement[] = [
-    ...allReplacements,
-    ...replacements
-      .filter((r) => r.replaceInFiles)
-      .map(({ search, replace }) => ({ search, replace })),
-  ];
-
-  // Get folder-only replacements (including those that apply to both)
-  const folderReplacements: FileNameReplacement[] = [
-    ...allReplacements,
-    ...replacements
-      .filter((r) => r.replaceInFolders)
-      .map(({ search, replace }) => ({ search, replace })),
-  ];
+) {
+  const { allReplacements, fileReplacements, folderReplacements } =
+    buildReplacementGroups(replacements);
 
   const options = {
     fs,
@@ -316,13 +362,75 @@ export async function createFolders(
     },
   } as const;
 
-  // Get the structure operations but don't create anything yet
   const { operations } = await getStructure(structureString, {
     ...options,
     rootDir: baseDir,
   });
 
-  // Process operations in order
+  return { operations, fileReplacements, folderReplacements };
+}
+
+export async function getStructureCreationPlan(
+  structureString: string,
+  baseDir: string,
+  replacements: Array<{
+    search: string;
+    replace: string;
+    replaceInFiles: boolean;
+    replaceInFolders: boolean;
+  }>
+): Promise<StructureCreationPlan> {
+  const { operations } = await getStructureOperations(
+    structureString,
+    baseDir,
+    replacements
+  );
+
+  const existingChecks: Array<{ targetPath: string; exists: boolean }> =
+    await Promise.all(
+    operations.map(async (operation: any) => ({
+      targetPath: operation.targetPath as string,
+      exists: await fs.exists(operation.targetPath),
+    }))
+  );
+  const existingTargets = existingChecks
+    .filter((check) => check.exists)
+    .map((check) => check.targetPath);
+
+  return {
+    summary: {
+      totalOperations: operations.length,
+      createFileCount: operations.filter(
+        (op: any) => op.type === "create" && !op.isDirectory
+      ).length,
+      createDirectoryCount: operations.filter(
+        (op: any) => op.type === "create" && op.isDirectory
+      ).length,
+      copyCount: operations.filter((op: any) => op.type === "copy").length,
+      moveCount: operations.filter((op: any) => op.type === "move").length,
+      existingTargetCount: existingTargets.length,
+      existingTargets,
+    },
+  };
+}
+
+export async function createFoldersDetailed(
+  structureString: string,
+  baseDir: string,
+  replacements: Array<{
+    search: string;
+    replace: string;
+    replaceInFiles: boolean;
+    replaceInFolders: boolean;
+  }>
+): Promise<CreateFoldersExecutionResult> {
+  const { operations, fileReplacements, folderReplacements } =
+    await getStructureOperations(structureString, baseDir, replacements);
+  const plan = await getStructureCreationPlan(structureString, baseDir, replacements);
+
+  let completedCount = 0;
+  const failures: FailedStructureOperation[] = [];
+
   for (const operation of operations) {
     try {
       switch (operation.type) {
@@ -333,25 +441,20 @@ export async function createFolders(
             await createEmptyOrFunctionalFile(operation.targetPath);
           }
           break;
-
         case "copy":
           if (!operation.sourcePath) {
             throw new Error("Source path is required for copy operations");
           }
           if (operation.isDirectory) {
-            // For directories, we need to copy all contents with replacements
             const allFiles = await fs.getAllFiles(operation.sourcePath);
             const allDirs = await fs.getAllDirectories(operation.sourcePath);
 
-            // Create all directories first
             for (const dir of allDirs) {
               const relativePath = await fs.getRelativePath(
                 operation.sourcePath,
                 dir
               );
               let targetDir = operation.targetPath;
-
-              // Apply folder replacements to each directory in the path
               const dirParts = relativePath.split("/");
               const newDirParts = dirParts.map((part) => {
                 let result = part;
@@ -365,15 +468,12 @@ export async function createFolders(
               await fs.mkdir(targetDir, { recursive: true });
             }
 
-            // Then copy each file with replacements
             for (const file of allFiles) {
               const relativePath = await fs.getRelativePath(
                 operation.sourcePath,
                 file
               );
               let targetFile = operation.targetPath;
-
-              // Apply file replacements to each part of the path
               const fileParts = relativePath.split("/");
               const newFileParts = fileParts.map((part, index, array) => {
                 let result = part;
@@ -392,7 +492,6 @@ export async function createFolders(
               await fs.copyFile(file, targetFile);
             }
           } else {
-            // For single files, just copy with replacements in the name
             let targetPath = operation.targetPath;
             for (const { search, replace } of fileReplacements) {
               const fileName = targetPath.split("/").pop() || "";
@@ -405,9 +504,7 @@ export async function createFolders(
             await fs.copyFile(operation.sourcePath, targetPath);
           }
           break;
-
         case "move":
-          // Similar to copy but with move operations
           if (!operation.sourcePath) {
             throw new Error("Source path is required for move operations");
           }
@@ -418,13 +515,46 @@ export async function createFolders(
           }
           break;
       }
+      completedCount += 1;
     } catch (error) {
       console.error(`Error processing operation:`, operation, error);
-      throw error;
+      failures.push({
+        type: operation.type,
+        targetPath: operation.targetPath,
+        sourcePath: operation.sourcePath,
+        isDirectory: operation.isDirectory,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
-  return baseDir;
+  return {
+    baseDir,
+    summary: plan.summary,
+    completedCount,
+    failureCount: failures.length,
+    failures,
+    partialSuccess: completedCount > 0 && failures.length > 0,
+  };
+}
+
+export async function createFolders(
+  structureString: string,
+  baseDir: string,
+  replacements: Array<{
+    search: string;
+    replace: string;
+    replaceInFiles: boolean;
+    replaceInFolders: boolean;
+  }>
+): Promise<string> {
+  const result = await createFoldersDetailed(structureString, baseDir, replacements);
+  if (result.failureCount > 0) {
+    throw new Error(
+      `${result.failureCount} operation${result.failureCount === 1 ? "" : "s"} failed`
+    );
+  }
+  return result.baseDir;
 }
 
 export async function getDesktopDir(): Promise<string> {
