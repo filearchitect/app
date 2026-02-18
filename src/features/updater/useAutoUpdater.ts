@@ -98,8 +98,9 @@ export function useAutoUpdater() {
         return true;
       }
 
-      // macOS: full in-app updater (signed)
-      const manifest = await check({ target });
+      // macOS: full in-app updater (signed). Let updater resolve the correct
+      // platform target (darwin-aarch64 / darwin-x86_64) automatically.
+      const manifest = await check();
       console.log("Update manifest:", manifest);
 
       if (manifest) {
