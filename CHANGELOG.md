@@ -6,6 +6,7 @@
 
 - Initial changelog workflow documentation and PR checklist.
 - Added updater option to skip a specific version from recurring prompts.
+- Added a "Copy report" action in the structure creation failure dialog for faster support/debug sharing.
 
 ### Changed
 
