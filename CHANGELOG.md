@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Initial changelog workflow documentation and PR checklist.
+
+### Changed
+
+- No user-facing changes yet.
+
+### Fixed
+
+- No user-facing fixes yet.
+
 ## 0.9.1
 
 ### Improved
