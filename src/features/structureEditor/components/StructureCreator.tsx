@@ -35,9 +35,6 @@ export const StructureCreator: React.FC = () => {
     setEditorContent,
     isLoading,
     handleCreateFolders,
-    showCreateConfirm,
-    setShowCreateConfirm,
-    createPlan,
     executionReport,
     setExecutionReport,
     handleFileDrop,
@@ -280,79 +277,6 @@ export const StructureCreator: React.FC = () => {
         onClose={handleCloseAiModal}
         onSubmit={handleAiSubmit}
       />
-
-      <Dialog open={showCreateConfirm} onOpenChange={setShowCreateConfirm}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Confirm structure creation</DialogTitle>
-            <DialogDescription>
-              Review the planned changes before creating files and folders.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 text-sm">
-            <div className="grid grid-cols-2 gap-2">
-              <div>Total operations</div>
-              <div className="font-medium text-right">
-                {createPlan?.summary.totalOperations ?? 0}
-              </div>
-              <div>Create folders</div>
-              <div className="font-medium text-right">
-                {createPlan?.summary.createDirectoryCount ?? 0}
-              </div>
-              <div>Create files</div>
-              <div className="font-medium text-right">
-                {createPlan?.summary.createFileCount ?? 0}
-              </div>
-              <div>Copy operations</div>
-              <div className="font-medium text-right">
-                {createPlan?.summary.copyCount ?? 0}
-              </div>
-              <div>Move operations</div>
-              <div className="font-medium text-right">
-                {createPlan?.summary.moveCount ?? 0}
-              </div>
-            </div>
-
-            {(createPlan?.summary.existingTargetCount ?? 0) > 0 && (
-              <div className="rounded border border-amber-200 bg-amber-50 p-3">
-                <p className="font-medium text-amber-900">
-                  {createPlan?.summary.existingTargetCount} target
-                  {createPlan?.summary.existingTargetCount === 1 ? "" : "s"}{" "}
-                  already exist
-                </p>
-                <p className="mt-1 text-xs text-amber-800">
-                  Existing paths may be overwritten or merged depending on
-                  operation type.
-                </p>
-                <ul className="mt-2 list-disc pl-4 text-xs text-amber-900">
-                  {(createPlan?.summary.existingTargets ?? [])
-                    .slice(0, 5)
-                    .map((path) => (
-                      <li key={path} className="break-all">
-                        {path}
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowCreateConfirm(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => void handleCreateFolders(undefined, true)}
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating..." : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={Boolean(executionReport && executionReport.failureCount > 0)}

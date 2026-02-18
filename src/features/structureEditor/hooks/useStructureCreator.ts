@@ -4,7 +4,6 @@ import {
   createFoldersDetailed,
   getStructureCreationPlan,
   type CreateFoldersExecutionResult,
-  type StructureCreationPlan,
 } from "@/lib/filearchitect";
 import {
   processFileForImport,
@@ -21,10 +20,6 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
   const [baseDir, setBaseDir] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [autoOpenFolder, setAutoOpenFolder] = useState(false);
-  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
-  const [createPlan, setCreatePlan] = useState<StructureCreationPlan | null>(
-    null
-  );
   const [executionReport, setExecutionReport] =
     useState<CreateFoldersExecutionResult | null>(null);
 
@@ -101,30 +96,26 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
   }, [autoOpenFolder, baseDir, editorContent, options.replacements]);
 
   const handleCreateFolders = useCallback(
-    async (e?: React.FormEvent, confirmCreate: boolean = false) => {
+    async (e?: React.FormEvent) => {
       e?.preventDefault();
       if (isLoading || !editorContent.trim() || !baseDir) return;
-
-      if (!confirmCreate) {
-        setIsLoading(true);
-        try {
-          const plan = await getStructureCreationPlan(
-            editorContent,
-            baseDir,
-            options.replacements || []
-          );
-          setCreatePlan(plan);
-          setShowCreateConfirm(true);
-        } catch (error) {
-          console.error("Failed to prepare creation plan:", error);
-          toast.error("Failed to prepare structure creation");
-        } finally {
-          setIsLoading(false);
+      try {
+        const plan = await getStructureCreationPlan(
+          editorContent,
+          baseDir,
+          options.replacements || []
+        );
+        if (plan.summary.existingTargetCount > 0) {
+          toast.warning("Some targets already exist", {
+            description: `${plan.summary.existingTargetCount} path${
+              plan.summary.existingTargetCount === 1 ? "" : "s"
+            } may be overwritten or merged.`,
+          });
         }
-        return;
+      } catch (error) {
+        console.error("Failed to prepare non-blocking creation summary:", error);
       }
 
-      setShowCreateConfirm(false);
       await runFolderCreation();
     },
     [isLoading, editorContent, baseDir, options.replacements, runFolderCreation]
@@ -183,9 +174,6 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
     setBaseDir,
     isLoading,
     autoOpenFolder,
-    showCreateConfirm,
-    setShowCreateConfirm,
-    createPlan,
     executionReport,
     setExecutionReport,
     handleCreateFolders,

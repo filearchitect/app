@@ -2,7 +2,6 @@ import { useAuthContext } from "@/features/auth/AuthProvider";
 import { useStructures } from "@/features/structures/StructureContext";
 import type {
   CreateFoldersExecutionResult,
-  StructureCreationPlan,
 } from "@/lib/filearchitect";
 import { Replacement } from "@/types";
 import React, { createContext, ReactNode, useContext } from "react";
@@ -18,17 +17,11 @@ interface StructureEditorContextType {
 
   // Loading state
   isLoading: boolean;
-  showCreateConfirm: boolean;
-  setShowCreateConfirm: (value: boolean) => void;
-  createPlan: StructureCreationPlan | null;
   executionReport: CreateFoldersExecutionResult | null;
   setExecutionReport: (report: CreateFoldersExecutionResult | null) => void;
 
   // Actions
-  handleCreateFolders: (
-    e?: React.FormEvent,
-    confirmCreate?: boolean
-  ) => Promise<void>;
+  handleCreateFolders: (e?: React.FormEvent) => Promise<void>;
   handleBrowse: () => void;
   handleFileDrop: (filePath: string, shiftKey: boolean) => void;
   handleMultipleFileDrop: (filePaths: string[], shiftKey: boolean) => void;
@@ -72,9 +65,6 @@ export const StructureEditorProvider: React.FC<{
     editorContent,
     setEditorContent,
     isLoading,
-    showCreateConfirm,
-    setShowCreateConfirm,
-    createPlan,
     executionReport,
     setExecutionReport,
     handleCreateFolders,
@@ -126,9 +116,6 @@ export const StructureEditorProvider: React.FC<{
       editorContent,
       setEditorContent,
       isLoading,
-      showCreateConfirm,
-      setShowCreateConfirm,
-      createPlan,
       executionReport,
       setExecutionReport,
       handleCreateFolders,
@@ -149,9 +136,6 @@ export const StructureEditorProvider: React.FC<{
       editorContent,
       setEditorContent,
       isLoading,
-      showCreateConfirm,
-      setShowCreateConfirm,
-      createPlan,
       executionReport,
       setExecutionReport,
       handleCreateFolders,
