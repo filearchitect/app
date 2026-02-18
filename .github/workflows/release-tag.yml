@@ -287,14 +287,31 @@ jobs:
           unset APPLE_CERTIFICATE_PASSWORD
           pnpm tauri build --config src-tauri/tauri.production.conf.json
 
+      - name: Upload release assets (macOS binaries)
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_TAR="$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | head -n1)"
+          APP_SIG="${APP_TAR}.sig"
+          DMG_FILE="$(ls src-tauri/target/release/bundle/dmg/*.dmg | head -n1)"
+          gh release upload "${GITHUB_REF_NAME}" "$APP_TAR" "$APP_SIG" "$DMG_FILE" --clobber
+
       - name: Generate updater manifest (latest.json)
         shell: bash
         run: |
           set -euo pipefail
           APP_TAR="$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | head -n1)"
           APP_SIG="${APP_TAR}.sig"
-          APP_TAR_NAME="$(basename "$APP_TAR")"
-          APP_TAR_URL_NAME="${APP_TAR_NAME// /%20}"
+          APP_ASSET_NAME="$(
+            gh release view "${GITHUB_REF_NAME}" --json assets \
+              | jq -r '.assets[] | select(.name | endswith(".app.tar.gz")) | .name' \
+              | head -n1
+          )"
+          if [[ -z "${APP_ASSET_NAME}" ]]; then
+            echo "Could not resolve uploaded .app.tar.gz asset name for ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+          APP_TAR_URL_NAME="${APP_ASSET_NAME// /%20}"
           APP_SIG_CONTENT="$(cat "$APP_SIG")"
           VERSION="${GITHUB_REF_NAME#v}"
           PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -330,14 +347,11 @@ jobs:
 
           cat latest.json
 
-      - name: Upload release assets (macOS)
+      - name: Upload release assets (macOS manifest)
         shell: bash
         run: |
           set -euo pipefail
-          APP_TAR="$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | head -n1)"
-          APP_SIG="${APP_TAR}.sig"
-          DMG_FILE="$(ls src-tauri/target/release/bundle/dmg/*.dmg | head -n1)"
-          gh release upload "${GITHUB_REF_NAME}" "$APP_TAR" "$APP_SIG" "$DMG_FILE" latest.json --clobber
+          gh release upload "${GITHUB_REF_NAME}" latest.json --clobber
 
   build-windows:
     name: Build Windows
