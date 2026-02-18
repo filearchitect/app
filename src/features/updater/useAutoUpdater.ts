@@ -1,4 +1,5 @@
 import { useAuthContext } from "@/features/auth/AuthProvider";
+import { getStoreValue, setStoreValue } from "@/api/store";
 import { getVersion } from "@tauri-apps/api/app";
 import { fetch } from "@tauri-apps/plugin-http";
 import { platform } from "@tauri-apps/plugin-os";
@@ -21,6 +22,8 @@ type UpdateInfo = {
   downloadUrl?: string;
 };
 
+const SKIPPED_UPDATE_VERSION_KEY = "updaterSkippedVersion";
+
 const isLocalDev = import.meta.env.VITE_DEV_MODE === "true";
 // Tauri plugin updater endpoint is configured in tauri.conf / tauri.production.conf
 const expectedEndpoint =
@@ -30,6 +33,7 @@ export function useAutoUpdater() {
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [lastUpdateError, setLastUpdateError] = useState<string | null>(null);
   const hasCheckedForUpdates = useRef(false);
   const { license, isInitialized: isAuthInitialized } = useAuthContext();
 
@@ -61,8 +65,11 @@ export function useAutoUpdater() {
     }
 
     try {
+      setLastUpdateError(null);
       const target = await platform();
       const currentVersion = await getVersion();
+      const skippedVersion =
+        (await getStoreValue<string>(SKIPPED_UPDATE_VERSION_KEY)) ?? "";
 
       console.log("Update Check Configuration:", {
         isLocalDev,
@@ -88,6 +95,10 @@ export function useAutoUpdater() {
         ) {
           return false;
         }
+        if (skippedVersion && skippedVersion === remoteVersion) {
+          console.log("Skipping previously skipped version:", remoteVersion);
+          return false;
+        }
         setUpdateInfo({
           version: remoteVersion,
           body: data.body,
@@ -104,6 +115,10 @@ export function useAutoUpdater() {
       console.log("Update manifest:", manifest);
 
       if (manifest) {
+        if (skippedVersion && skippedVersion === manifest.version) {
+          console.log("Skipping previously skipped version:", manifest.version);
+          return false;
+        }
         setUpdateInfo({
           version: manifest.version,
           body: manifest.body,
@@ -120,10 +135,22 @@ export function useAutoUpdater() {
         "Expected endpoint (Tauri uses tauri.conf endpoints):",
         expectedEndpoint
       );
-      toast.error("Failed to check for updates");
+      setLastUpdateError(err.message);
+      toast.error("Failed to check for updates", {
+        description: err.message,
+      });
       return false;
     }
   };
+
+  const skipCurrentVersion = useCallback(async () => {
+    if (!updateInfo?.version) {
+      return;
+    }
+    await setStoreValue(SKIPPED_UPDATE_VERSION_KEY, updateInfo.version);
+    setShowUpdateDialog(false);
+    toast.success(`Skipped update ${updateInfo.version}`);
+  }, [updateInfo]);
 
   const handleUpdate = useCallback(async () => {
     if (!isUpdateAllowed()) {
@@ -145,6 +172,12 @@ export function useAutoUpdater() {
     try {
       const hasUpdate = await checkForUpdates();
       if (!hasUpdate) {
+        if (lastUpdateError) {
+          toast.error("Unable to complete update check", {
+            description: lastUpdateError,
+          });
+          return;
+        }
         toast.success("You're on the latest version!");
         return;
       }
@@ -193,7 +226,7 @@ export function useAutoUpdater() {
     } finally {
       setIsUpdating(false);
     }
-  }, [updateInfo]);
+  }, [lastUpdateError, updateInfo]);
 
   // Run initial check once after auth is ready (so license is available for isUpdateAllowed)
   useEffect(() => {
@@ -209,6 +242,8 @@ export function useAutoUpdater() {
     setShowUpdateDialog,
     updateInfo,
     isUpdating,
+    lastUpdateError,
+    skipCurrentVersion,
     handleUpdate,
     checkForUpdates,
   };

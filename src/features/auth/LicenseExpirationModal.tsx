@@ -86,17 +86,6 @@ const LicenseExpirationModal: React.FC<LicenseExpirationModalProps> = ({
                       ? "Your 7-day trial has ended. Upgrade to continue using all features."
                       : "Get unlimited access to all features and support the development of FileArchitect."}
                   </p>
-                  <p>
-                    Read the{" "}
-                    <a
-                      href="https://filearchitect.com/docs"
-                      target="_blank"
-                      className="text-blue-500 hover:text-blue-600 underline transition-colors"
-                    >
-                      docs
-                    </a>{" "}
-                    to learn more about the syntax and the advanced features.
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -137,25 +126,6 @@ const LicenseExpirationModal: React.FC<LicenseExpirationModalProps> = ({
                     </ul>
                   </div>
                 </div>
-
-                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-gray-700 shadow-sm text-lg">
-                  <p>
-                    The app is currently in beta and you might encounter some
-                    bugs or changes. If you have any questions, feedback, or
-                    suggestions, add them to our forum{" "}
-                    <a
-                      href="https://filearchitect.userjot.com/"
-                      target="_blank"
-                      className="link"
-                    >
-                      https://filearchitect.userjot.com/
-                    </a>{" "}
-                    or email us at{" "}
-                    <a href="mailto:support@filearchitect.com" className="link">
-                      support@filearchitect.com
-                    </a>
-                  </p>
-                </div>
               </div>
             </DialogDescription>
           </DialogHeader>
@@ -173,7 +143,7 @@ const LicenseExpirationModal: React.FC<LicenseExpirationModalProps> = ({
             <Button
               size="lg"
               onClick={() => setShowActivateForm(true)}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isExpiredTrial ? "Activate License" : "Upgrade Now"}
             </Button>

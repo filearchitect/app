@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 
 type UpdateInfo = {
@@ -23,7 +24,9 @@ type UpdateDialogProps = {
   onOpenChange: (open: boolean) => void;
   updateInfo: UpdateInfo | null;
   isUpdating: boolean;
+  lastError?: string | null;
   onUpdate: () => void;
+  onSkipVersion?: () => void;
 };
 
 export function UpdateDialog({
@@ -31,7 +34,9 @@ export function UpdateDialog({
   onOpenChange,
   updateInfo,
   isUpdating,
+  lastError,
   onUpdate,
+  onSkipVersion,
 }: UpdateDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -53,9 +58,27 @@ export function UpdateDialog({
                 </div>
               </div>
             )}
+            {lastError && (
+              <details className="mt-3 text-sm text-muted-foreground">
+                <summary className="cursor-pointer">Update error details</summary>
+                <pre className="mt-2 whitespace-pre-wrap break-words rounded bg-muted p-2 text-xs">
+                  {lastError}
+                </pre>
+              </details>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
+          {!!updateInfo?.version && onSkipVersion && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onSkipVersion}
+              disabled={isUpdating}
+            >
+              Skip this version
+            </Button>
+          )}
           <AlertDialogCancel disabled={isUpdating}>Later</AlertDialogCancel>
           <AlertDialogAction onClick={onUpdate} disabled={isUpdating}>
             {updateInfo?.manualDownload

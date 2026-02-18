@@ -5,10 +5,12 @@
 ### Added
 
 - Initial changelog workflow documentation and PR checklist.
+- Added updater option to skip a specific version from recurring prompts.
 
 ### Changed
 
-- No user-facing changes yet.
+- Updated expired-trial modal copy and styling for a cleaner layout and consistent primary action button color.
+- Improved updater feedback by surfacing technical error details in the update dialog.
 
 ### Fixed
 
