@@ -13,6 +13,7 @@
 - Updated expired-trial modal copy and styling for a cleaner layout and consistent primary action button color.
 - Improved updater feedback by surfacing technical error details in the update dialog.
 - Improved structure creation flow with non-blocking preflight conflict warnings and a detailed partial-failure report.
+- Improved structure creation failure dialog readability with truncated path rows and expandable error details.
 
 ### Fixed
 

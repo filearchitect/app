@@ -336,12 +336,20 @@ export const StructureCreator: React.FC = () => {
             <ul className="space-y-2">
               {(executionReport?.failures ?? []).slice(0, 20).map((failure) => (
                 <li key={`${failure.type}-${failure.targetPath}`}>
-                  <div className="font-medium break-all">
+                  <div
+                    className="font-medium truncate"
+                    title={`[${failure.type}] ${failure.targetPath}`}
+                  >
                     [{failure.type}] {failure.targetPath}
                   </div>
-                  <div className="text-muted-foreground break-all">
-                    {failure.message}
-                  </div>
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-muted-foreground">
+                      Error details
+                    </summary>
+                    <div className="text-muted-foreground break-all mt-1">
+                      {failure.message}
+                    </div>
+                  </details>
                 </li>
               ))}
             </ul>
