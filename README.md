@@ -1,6 +1,6 @@
 # File Architect
 
-File Architect is a native macOS application that helps developers and designers quickly create file structures from text descriptions. Available on [filearchitect.com](https://filearchitect.com).
+File Architect is a desktop application that allow users to create file and folder structures from plain text. Available on [filearchitect.com](https://filearchitect.com).
 
 ![File Architect screenshot](docs/screenshots/filearchitect-main.png)
 
