@@ -64,8 +64,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || \
-            gh release create "${GITHUB_REF_NAME}" --title "File Architect ${GITHUB_REF_NAME}" --notes ""
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" == *"-test"* ]]; then
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "File Architect ${GITHUB_REF_NAME}" \
+              --notes "" \
+              --prerelease
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "File Architect ${GITHUB_REF_NAME}" \
+              --notes ""
+          fi
 
   build-macos:
     name: Build macOS (signed)

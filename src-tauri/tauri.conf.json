@@ -1,6 +1,5 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -26,7 +25,6 @@
           "width": 660
         }
       },
-
       "files": {},
       "hardenedRuntime": true,
       "minimumSystemVersion": "10.12",
@@ -64,12 +62,14 @@
     },
     "deep-link": {
       "desktop": {
-        "schemes": ["filearchitect"]
+        "schemes": [
+          "filearchitect"
+        ]
       }
     }
   },
   "productName": "File Architect",
-  "version": "0.10.5",
+  "version": "0.11.0",
   "identifier": "com.filearchitect.app",
   "app": {
     "withGlobalTauri": true,

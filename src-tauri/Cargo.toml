@@ -1,6 +1,6 @@
 [package]
 name = "filearchitect-app"
-version = "0.10.5"
+version = "0.11.0"
 description = "File Architect"
 authors = ["Sébastien Lavoie"]
 license = ""
@@ -70,4 +70,3 @@ tauri-plugin-window-state = "2"
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-updater = "2"
-
