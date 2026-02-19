@@ -1,6 +1,6 @@
 [package]
 name = "filearchitect-app"
-version = "0.11.9"
+version = "0.11.10"
 description = "File Architect"
 authors = ["Sébastien Lavoie"]
 license = ""
