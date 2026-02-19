@@ -86,7 +86,15 @@ export function useAutoUpdater() {
             }
           });
 
-          toast.success("Update downloaded and installed.", { id: toastId });
+          toast.success("Update downloaded and installed.", {
+            id: toastId,
+            action: {
+              label: "Restart now",
+              onClick: () => {
+                void relaunch();
+              },
+            },
+          });
           setUpdateInfo((prev) =>
             prev ? { ...prev, version, manifest } : { version, manifest }
           );
