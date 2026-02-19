@@ -72,11 +72,13 @@ jobs:
             gh release create "${GITHUB_REF_NAME}" \
               --title "File Architect ${GITHUB_REF_NAME}" \
               --notes "" \
+              --draft \
               --prerelease
           else
             gh release create "${GITHUB_REF_NAME}" \
               --title "File Architect ${GITHUB_REF_NAME}" \
-              --notes ""
+              --notes "" \
+              --draft
           fi
 
   build-macos:
@@ -437,3 +439,27 @@ jobs:
           set -euo pipefail
           EXE_FILE="src-tauri/target/x86_64-pc-windows-msvc/release/filearchitect-app.exe"
           gh release upload "${GITHUB_REF_NAME}" "$EXE_FILE" --clobber
+
+  publish-release:
+    name: Publish GitHub release
+    if: >-
+      ${{
+        always() &&
+        startsWith(github.ref, 'refs/tags/v') &&
+        needs.create-release.result == 'success' &&
+        (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped') &&
+        (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
+      }}
+    needs:
+      - create-release
+      - build-macos
+      - build-windows
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Publish release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "${GITHUB_REF_NAME}" --draft=false
