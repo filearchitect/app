@@ -1,7 +1,7 @@
 {
   "name": "filearchitect-app",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.11.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,9 @@
     "tauri:build:windows": "tauri build --target x86_64-pc-windows-msvc",
     "test": "vitest run",
     "test:watch": "vitest",
+    "version:sync": "node scripts/version-sync.mjs",
+    "version:check": "node scripts/version-check.mjs",
+    "release:tag": "bash scripts/tag-release.sh",
     "clean": "cd src/ && find . -name '*.js' -type f -delete",
     "clean:tauri": "cd src-tauri && cargo clean",
     "clean:tauri:debug": "cd src-tauri && if exist target\\debug rmdir /s /q target\\debug",

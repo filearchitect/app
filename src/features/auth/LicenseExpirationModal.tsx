@@ -10,6 +10,7 @@ import {
 import { LIMITED_FEATURES, PRO_FEATURES } from "@/config/constants";
 import { useEffect, useState } from "react";
 import { useAuthContext } from "./AuthProvider";
+import { LicenseActivationForm } from "./components/LicenseActivationForm";
 import { LicenseService } from "./services";
 
 interface LicenseExpirationModalProps {
@@ -43,6 +44,12 @@ const LicenseExpirationModal: React.FC<LicenseExpirationModalProps> = ({
     };
     checkModalDismissal();
   }, [open, isExpiredTrial, onOpenChange]);
+
+  useEffect(() => {
+    if (!open) {
+      setShowActivateForm(false);
+    }
+  }, [open]);
 
   const handleClose = async () => {
     if (isExpiredTrial) {
@@ -131,23 +138,34 @@ const LicenseExpirationModal: React.FC<LicenseExpirationModalProps> = ({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-auto pt-8">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleClose}
-              className="mr-2"
-            >
-              {isExpiredTrial
-                ? "Continue with limited features"
-                : "Maybe later"}
-            </Button>
-            <Button
-              size="lg"
-              onClick={() => setShowActivateForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isExpiredTrial ? "Activate License" : "Upgrade Now"}
-            </Button>
+            {showActivateForm ? (
+              <div className="w-full">
+                <LicenseActivationForm
+                  onSubmit={handleLicenseActivation}
+                  onCancel={() => setShowActivateForm(false)}
+                />
+              </div>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleClose}
+                  className="mr-2"
+                >
+                  {isExpiredTrial
+                    ? "Continue with limited features"
+                    : "Maybe later"}
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => setShowActivateForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isExpiredTrial ? "Activate License" : "Upgrade Now"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </div>
       </DialogContent>

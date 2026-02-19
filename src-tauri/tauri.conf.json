@@ -69,7 +69,7 @@
     }
   },
   "productName": "File Architect",
-  "version": "0.11.0",
+  "version": "0.11.6",
   "identifier": "com.filearchitect.app",
   "app": {
     "withGlobalTauri": true,

@@ -13,9 +13,10 @@ export function useAppInitialization() {
     setShowUpdateDialog,
     updateInfo,
     isUpdating,
+    isRestartReady,
     lastUpdateError,
-    skipCurrentVersion,
     handleUpdate,
+    handleRestartNow,
   } = useAutoUpdater();
   const { license, isLicenseActive, isInitialized, setLicense } =
     useAuthContext();
@@ -49,9 +50,10 @@ export function useAppInitialization() {
     setShowUpdateDialog,
     updateInfo,
     isUpdating,
+    isRestartReady,
     lastUpdateError,
-    skipCurrentVersion,
     handleUpdate,
+    handleRestartNow,
 
     // License modal
     showLicenseModal,

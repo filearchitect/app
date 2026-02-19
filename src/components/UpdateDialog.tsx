@@ -8,7 +8,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 
 type UpdateInfo = {
@@ -24,9 +23,10 @@ type UpdateDialogProps = {
   onOpenChange: (open: boolean) => void;
   updateInfo: UpdateInfo | null;
   isUpdating: boolean;
+  isRestartReady?: boolean;
   lastError?: string | null;
   onUpdate: () => void;
-  onSkipVersion?: () => void;
+  onRestartNow?: () => void;
 };
 
 export function UpdateDialog({
@@ -34,23 +34,28 @@ export function UpdateDialog({
   onOpenChange,
   updateInfo,
   isUpdating,
+  isRestartReady = false,
   lastError,
   onUpdate,
-  onSkipVersion,
+  onRestartNow,
 }: UpdateDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Update Available</AlertDialogTitle>
+          <AlertDialogTitle>
+            {isRestartReady ? "Update Ready" : "Update Available"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Version {updateInfo?.version} is available.
-            {updateInfo?.manualDownload && (
+            {isRestartReady
+              ? `Version ${updateInfo?.version} has been installed. Restart now to apply the update.`
+              : `Version ${updateInfo?.version} is available.`}
+            {!isRestartReady && updateInfo?.manualDownload && (
               <p className="mt-2 text-sm">
                 Click below to open the download page in your browser.
               </p>
             )}
-            {updateInfo?.body && (
+            {!isRestartReady && updateInfo?.body && (
               <div className="mt-2 text-sm">
                 Release Notes:
                 <div className="mt-1 prose prose-sm dark:prose-invert max-w-none [&>ul]:list-disc [&>ul]:pl-4">
@@ -69,24 +74,23 @@ export function UpdateDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          {!!updateInfo?.version && onSkipVersion && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onSkipVersion}
+          <AlertDialogCancel disabled={isUpdating}>Later</AlertDialogCancel>
+          {isRestartReady ? (
+            <AlertDialogAction
+              onClick={onRestartNow ?? onUpdate}
               disabled={isUpdating}
             >
-              Skip this version
-            </Button>
+              Restart now
+            </AlertDialogAction>
+          ) : (
+            <AlertDialogAction onClick={onUpdate} disabled={isUpdating}>
+              {updateInfo?.manualDownload
+                ? "Download from website"
+                : isUpdating
+                ? "Updating..."
+                : "Download update"}
+            </AlertDialogAction>
           )}
-          <AlertDialogCancel disabled={isUpdating}>Later</AlertDialogCancel>
-          <AlertDialogAction onClick={onUpdate} disabled={isUpdating}>
-            {updateInfo?.manualDownload
-              ? "Download from website"
-              : isUpdating
-              ? "Updating..."
-              : "Update & Restart"}
-          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

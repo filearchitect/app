@@ -27,9 +27,10 @@ function MainLayout() {
     setShowUpdateDialog,
     updateInfo,
     isUpdating,
+    isRestartReady,
     lastUpdateError,
-    skipCurrentVersion,
     handleUpdate,
+    handleRestartNow,
     showLicenseModal,
     setShowLicenseModal,
     license,
@@ -43,9 +44,10 @@ function MainLayout() {
         onOpenChange={setShowUpdateDialog}
         updateInfo={updateInfo}
         onUpdate={handleUpdate}
+        onRestartNow={handleRestartNow}
+        isRestartReady={isRestartReady}
         isUpdating={isUpdating}
         lastError={lastUpdateError}
-        onSkipVersion={skipCurrentVersion}
       />
       <LicenseExpirationModal
         open={showLicenseModal}

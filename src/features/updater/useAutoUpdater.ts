@@ -1,5 +1,4 @@
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import { getStoreValue, setStoreValue } from "@/api/store";
 import { getVersion } from "@tauri-apps/api/app";
 import { fetch } from "@tauri-apps/plugin-http";
 import { platform } from "@tauri-apps/plugin-os";
@@ -22,8 +21,6 @@ type UpdateInfo = {
   downloadUrl?: string;
 };
 
-const SKIPPED_UPDATE_VERSION_KEY = "updaterSkippedVersion";
-
 const isLocalDev = import.meta.env.VITE_DEV_MODE === "true";
 // Tauri plugin updater endpoint is configured in tauri.conf / tauri.production.conf
 const expectedEndpoint =
@@ -33,6 +30,7 @@ export function useAutoUpdater() {
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isRestartReady, setIsRestartReady] = useState(false);
   const [lastUpdateError, setLastUpdateError] = useState<string | null>(null);
   const hasCheckedForUpdates = useRef(false);
   const { license, isInitialized: isAuthInitialized } = useAuthContext();
@@ -55,6 +53,57 @@ export function useAutoUpdater() {
     return isAllowed;
   };
 
+  const downloadAndInstallUpdate = useCallback(
+    async (manifest: any, version: string) => {
+      setIsUpdating(true);
+      try {
+        const toastId = toast.loading("Preparing update...", {
+          duration: Infinity,
+        });
+
+        let downloaded = 0;
+        let contentLength = 0;
+
+        try {
+          await manifest.downloadAndInstall((event: any) => {
+            switch (event.event) {
+              case "Started":
+                contentLength = event.data.contentLength ?? 0;
+                toast.loading("Starting download...", { id: toastId });
+                break;
+              case "Progress":
+                downloaded += event.data.chunkLength;
+                if (contentLength > 0) {
+                  const progress = Math.round((downloaded / contentLength) * 100);
+                  toast.loading(`Downloading: ${progress}%`, { id: toastId });
+                } else {
+                  toast.loading("Downloading update...", { id: toastId });
+                }
+                break;
+              case "Finished":
+                toast.loading("Installing update...", { id: toastId });
+                break;
+            }
+          });
+
+          toast.success("Update downloaded and installed.", { id: toastId });
+          setUpdateInfo((prev) =>
+            prev ? { ...prev, version, manifest } : { version, manifest }
+          );
+          setIsRestartReady(true);
+          setShowUpdateDialog(true);
+        } catch (installError) {
+          console.error("Installation failed:", installError);
+          toast.error("Failed to install update", { id: toastId });
+          throw installError;
+        }
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    []
+  );
+
   const checkForUpdates = async () => {
     const allowed = isUpdateAllowed();
     console.log("Update check - allowed?", allowed);
@@ -68,8 +117,6 @@ export function useAutoUpdater() {
       setLastUpdateError(null);
       const target = await platform();
       const currentVersion = await getVersion();
-      const skippedVersion =
-        (await getStoreValue<string>(SKIPPED_UPDATE_VERSION_KEY)) ?? "";
 
       console.log("Update Check Configuration:", {
         isLocalDev,
@@ -95,16 +142,13 @@ export function useAutoUpdater() {
         ) {
           return false;
         }
-        if (skippedVersion && skippedVersion === remoteVersion) {
-          console.log("Skipping previously skipped version:", remoteVersion);
-          return false;
-        }
         setUpdateInfo({
           version: remoteVersion,
           body: data.body,
           manualDownload: true,
           downloadUrl: GITHUB_LATEST_RELEASE_PAGE,
         });
+        setIsRestartReady(false);
         setShowUpdateDialog(true);
         return true;
       }
@@ -115,16 +159,14 @@ export function useAutoUpdater() {
       console.log("Update manifest:", manifest);
 
       if (manifest) {
-        if (skippedVersion && skippedVersion === manifest.version) {
-          console.log("Skipping previously skipped version:", manifest.version);
-          return false;
-        }
         setUpdateInfo({
           version: manifest.version,
           body: manifest.body,
           manifest,
         });
-        setShowUpdateDialog(true);
+        setIsRestartReady(false);
+        // Seamless flow on macOS: download/install immediately, then prompt restart.
+        await downloadAndInstallUpdate(manifest, manifest.version);
         return true;
       }
       return false;
@@ -143,15 +185,6 @@ export function useAutoUpdater() {
     }
   };
 
-  const skipCurrentVersion = useCallback(async () => {
-    if (!updateInfo?.version) {
-      return;
-    }
-    await setStoreValue(SKIPPED_UPDATE_VERSION_KEY, updateInfo.version);
-    setShowUpdateDialog(false);
-    toast.success(`Skipped update ${updateInfo.version}`);
-  }, [updateInfo]);
-
   const handleUpdate = useCallback(async () => {
     if (!isUpdateAllowed()) {
       toast.error(
@@ -168,65 +201,20 @@ export function useAutoUpdater() {
       return;
     }
 
-    setIsUpdating(true);
     try {
       const hasUpdate = await checkForUpdates();
-      if (!hasUpdate) {
-        if (lastUpdateError) {
-          toast.error("Unable to complete update check", {
-            description: lastUpdateError,
-          });
-          return;
-        }
+      if (!hasUpdate && !lastUpdateError) {
         toast.success("You're on the latest version!");
-        return;
-      }
-
-      if (!updateInfo?.manifest) return;
-
-      const toastId = toast.loading("Preparing update...", {
-        duration: Infinity,
-      });
-
-      let downloaded = 0;
-      let contentLength = 0;
-
-      try {
-        await updateInfo.manifest.downloadAndInstall((event: any) => {
-          switch (event.event) {
-            case "Started":
-              contentLength = event.data.contentLength ?? 0;
-              toast.loading("Starting download...", { id: toastId });
-              break;
-            case "Progress":
-              downloaded += event.data.chunkLength;
-              const progress = Math.round((downloaded / contentLength) * 100);
-              toast.loading(`Downloading: ${progress}%`, { id: toastId });
-              break;
-            case "Finished":
-              toast.loading("Installing update...", { id: toastId });
-              break;
-          }
-        });
-
-        // Remove migrations here since they'll run on app boot
-        toast.success("Update installed! Restarting...", { id: toastId });
-
-        // Small delay to ensure the success message is seen
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        await relaunch();
-      } catch (installError) {
-        console.error("Installation failed:", installError);
-        toast.error("Failed to install update", { id: toastId });
-        throw installError;
       }
     } catch (error) {
       console.error("Update process failed:", error);
       toast.error("Update process failed");
-    } finally {
-      setIsUpdating(false);
     }
-  }, [lastUpdateError, updateInfo]);
+  }, [lastUpdateError, checkForUpdates, updateInfo]);
+
+  const handleRestartNow = useCallback(async () => {
+    await relaunch();
+  }, []);
 
   // Run initial check once after auth is ready (so license is available for isUpdateAllowed)
   useEffect(() => {
@@ -242,9 +230,10 @@ export function useAutoUpdater() {
     setShowUpdateDialog,
     updateInfo,
     isUpdating,
+    isRestartReady,
     lastUpdateError,
-    skipCurrentVersion,
     handleUpdate,
+    handleRestartNow,
     checkForUpdates,
   };
 }

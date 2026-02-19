@@ -873,7 +873,7 @@ dependencies = [
 
 [[package]]
 name = "filearchitect-app"
-version = "0.10.5"
+version = "0.11.6"
 dependencies = [
  "core-foundation 0.9.4",
  "core-foundation-sys",
