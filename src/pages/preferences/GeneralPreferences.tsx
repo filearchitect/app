@@ -19,13 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAuthContext } from "@/features/auth/AuthProvider";
 import { expandPath } from "@/features/structureEditor/utils/folderUtils";
@@ -44,9 +37,6 @@ const GeneralPreferences: React.FC = () => {
   const [createFunctionalBlankFiles, setCreateFunctionalBlankFiles] =
     useState<boolean>(false);
   const [showResetSettings, setShowResetSettings] = useState(false);
-  const [structureClickBehavior, setStructureClickBehavior] = useState<
-    "ask" | "replace" | "insert"
-  >("ask");
   const { handleUpdate, isUpdating } = useAutoUpdater();
   const { license } = useAuthContext();
 
@@ -117,14 +107,10 @@ const GeneralPreferences: React.FC = () => {
         const createFunctionalValue = await getStoreValue<boolean>(
           "createFunctionalBlankFiles"
         );
-        const behavior = await getStoreValue<string>("structureClickBehavior");
 
         setDefaultPath(defaultPathValue ?? "");
         setAutoOpenFolder(autoOpenValue ?? false);
         setCreateFunctionalBlankFiles(createFunctionalValue ?? true); // Set default to true
-        setStructureClickBehavior(
-          behavior === "replace" || behavior === "insert" ? behavior : "ask"
-        );
 
         await loadStoreContents();
       } catch (error) {
@@ -176,14 +162,6 @@ const GeneralPreferences: React.FC = () => {
   const handleCreateFunctionalChange = async (checked: boolean) => {
     setCreateFunctionalBlankFiles(checked);
     await setStoreValue("createFunctionalBlankFiles", checked);
-    await loadStoreContents();
-  };
-
-  const handleStructureBehaviorChange = async (
-    value: "ask" | "replace" | "insert"
-  ) => {
-    setStructureClickBehavior(value);
-    await setStoreValue("structureClickBehavior", value);
     await loadStoreContents();
   };
 
@@ -295,40 +273,6 @@ const GeneralPreferences: React.FC = () => {
           </div>
         </Card>
 
-        <Card variant="bottom-border" className="rounded-none">
-          <div className="p-6 flex items-center">
-            <div className="flex-grow">
-              <Label
-                htmlFor="structure-click-behavior"
-                className="text-sm font-medium"
-              >
-                Structure click behavior
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Choose what happens when you click a structure.
-              </p>
-            </div>
-            <div className="pl-4">
-              <Select
-                value={structureClickBehavior}
-                onValueChange={handleStructureBehaviorChange}
-              >
-                <SelectTrigger className="w-[320px] h-9">
-                  <SelectValue placeholder="Select behavior" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ask">Always ask</SelectItem>
-                  <SelectItem value="replace">
-                    Replace the editor content
-                  </SelectItem>
-                  <SelectItem value="insert">
-                    Insert structure content at cursor
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </Card>
       </div>
 
       {showResetSettings && (
