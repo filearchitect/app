@@ -1,5 +1,16 @@
+const DEFAULT_FREE_VERSION_LIMIT = 5;
+
+const parsedFreeVersionLimit = Number.parseInt(
+  import.meta.env.VITE_MAX_LINES_FREE_VERSION ?? "",
+  10
+);
+
+const freeVersionLimit = Number.isFinite(parsedFreeVersionLimit)
+  ? parsedFreeVersionLimit
+  : DEFAULT_FREE_VERSION_LIMIT;
+
 export const APP_CONFIG = {
-  FREE_VERSION_LIMIT: parseInt(import.meta.env.VITE_MAX_LINES_FREE_VERSION),
+  FREE_VERSION_LIMIT: freeVersionLimit,
   DEFAULT_DRAG_DISTANCE: 8,
   MOBILE_BREAKPOINT: 768,
 } as const;

@@ -283,29 +283,49 @@ export class LicenseService {
    * Checks the license and updates the local license.
    * @returns The license
    */
-  static async checkLicense(): Promise<StoredLicense> {
+  static async checkLicense(): Promise<StoredLicense | null> {
     // Development override for testing different license types
     if (import.meta.env.DEV && import.meta.env.VITE_OVERRIDE_LICENSE) {
       const overrideType = import.meta.env.VITE_OVERRIDE_LICENSE as
+        | "none"
         | "trial"
+        | "trial_expired"
         | "once"
-        | "yearly";
-      console.log(`🔧 Development override: Using ${overrideType} license`);
+        | "yearly"
+        | "yearly_expired";
+      console.log(`🔧 Development override: Using ${overrideType} license mode`);
+
+      if (overrideType === "none") {
+        await this.clearStoredLicense();
+        return null;
+      }
+
+      const isTrialLike =
+        overrideType === "trial" || overrideType === "trial_expired";
+      const normalizedType: "trial" | "once" | "yearly" =
+        overrideType === "trial_expired"
+          ? "trial"
+          : overrideType === "yearly_expired"
+          ? "yearly"
+          : overrideType;
 
       // Create mock license based on override type
       const mockLicense: StoredLicense = {
         uuid: `dev-override-${overrideType}-${Date.now()}`,
-        type: overrideType,
-        license_key:
-          overrideType === "trial" ? null : `dev-${overrideType}-key`,
+        type: normalizedType,
+        license_key: isTrialLike ? null : `dev-${normalizedType}-key`,
         expires_at: this.getMockExpirationDate(overrideType),
         ai_expires_at:
-          overrideType === "trial"
+          isTrialLike
             ? null
+            : overrideType === "yearly_expired"
+            ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
             : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year for non-trial
         updates_expires_at:
-          overrideType === "trial"
+          isTrialLike
             ? null
+            : overrideType === "yearly_expired"
+            ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
             : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year for non-trial
         last_checked_at: new Date().toISOString(),
       };
@@ -349,18 +369,24 @@ export class LicenseService {
    * Helper method to get mock expiration dates for development override
    */
   private static getMockExpirationDate(
-    type: "trial" | "once" | "yearly"
+    type: "trial" | "trial_expired" | "once" | "yearly" | "yearly_expired"
   ): string | null {
     switch (type) {
       case "trial":
         // Trial expires in 7 days
         return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      case "trial_expired":
+        // Trial expired yesterday
+        return new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       case "once":
         // Once license never expires
         return null;
       case "yearly":
         // Yearly expires in 1 year
         return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      case "yearly_expired":
+        // Yearly license expired yesterday
+        return new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       default:
         return null;
     }
