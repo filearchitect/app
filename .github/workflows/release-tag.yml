@@ -61,7 +61,7 @@ jobs:
             -v "$PWD:/work" \
             -w /work \
             ghcr.io/trufflesecurity/trufflehog:latest \
-            git --no-verification --fail .
+            git --no-verification --fail file:///work
 
       - name: Create release if missing
         shell: bash
