@@ -465,4 +465,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release edit "${GITHUB_REF_NAME}" --draft=false
+          gh release edit "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --draft=false
