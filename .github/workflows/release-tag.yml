@@ -85,10 +85,27 @@ jobs:
           fi
 
   build-macos:
-    name: Build macOS (signed)
-    if: ${{ github.event_name == 'push' || inputs.build_macos }}
+    name: Build macOS (signed, ${{ matrix.target_key }})
+    if: >-
+      ${{
+        always() &&
+        (
+          (startsWith(github.ref, 'refs/tags/v') && needs.create-release.result == 'success') ||
+          (github.event_name == 'workflow_dispatch' && inputs.build_macos)
+        )
+      }}
     needs: create-release
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_key: darwin-aarch64
+            rust_target: aarch64-apple-darwin
+            runner: macos-14
+          - target_key: darwin-x86_64
+            rust_target: x86_64-apple-darwin
+            runner: macos-13
+    runs-on: ${{ matrix.runner }}
     env:
       VITE_APP_ENV: production
       VITE_APP_URL: https://filearchitect.com
@@ -217,6 +234,8 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
 
       - name: Normalize Tauri updater signing key
         shell: bash
@@ -306,62 +325,110 @@ jobs:
           # Use the certificate already imported in keychain.
           unset APPLE_CERTIFICATE
           unset APPLE_CERTIFICATE_PASSWORD
-          pnpm tauri build --config src-tauri/tauri.production.conf.json
+          pnpm tauri build --config src-tauri/tauri.production.conf.json --target "${{ matrix.rust_target }}"
 
       - name: Upload release assets (macOS binaries)
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: |
           set -euo pipefail
-          APP_TAR="$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | head -n1)"
+          TARGET_DIR="src-tauri/target/${{ matrix.rust_target }}/release/bundle"
+          APP_TAR="$(ls "${TARGET_DIR}/macos/"*.app.tar.gz | head -n1)"
           APP_SIG="${APP_TAR}.sig"
-          DMG_FILE="$(ls src-tauri/target/release/bundle/dmg/*.dmg | head -n1)"
-          gh release upload "${GITHUB_REF_NAME}" "$APP_TAR" "$APP_SIG" "$DMG_FILE" --clobber
+          DMG_FILE="$(ls "${TARGET_DIR}/dmg/"*.dmg | head -n1)"
+          VERSION="${GITHUB_REF_NAME#v}"
 
+          RENAMED_APP_TAR="filearchitect_${VERSION}_${{ matrix.target_key }}.app.tar.gz"
+          RENAMED_APP_SIG="${RENAMED_APP_TAR}.sig"
+          RENAMED_DMG="filearchitect_${VERSION}_${{ matrix.target_key }}.dmg"
+
+          cp "$APP_TAR" "$RENAMED_APP_TAR"
+          cp "$APP_SIG" "$RENAMED_APP_SIG"
+          cp "$DMG_FILE" "$RENAMED_DMG"
+
+          gh release upload "${GITHUB_REF_NAME}" "$RENAMED_APP_TAR" "$RENAMED_APP_SIG" "$RENAMED_DMG" --clobber
+
+      - name: Upload dry-run artifacts (macOS binaries)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.target_key }}-${{ github.run_number }}
+          path: |
+            src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/*.app.tar.gz.sig
+            src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+  build-macos-manifest:
+    name: Build macOS updater manifest
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    needs:
+      - create-release
+      - build-macos
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
       - name: Generate updater manifest (latest.json)
         shell: bash
         run: |
           set -euo pipefail
-          APP_TAR="$(ls src-tauri/target/release/bundle/macos/*.app.tar.gz | head -n1)"
-          APP_SIG="${APP_TAR}.sig"
-          APP_ASSET_NAME="$(
-            gh release view "${GITHUB_REF_NAME}" --json assets \
-              | jq -r '.assets[] | select(.name | endswith(".app.tar.gz")) | .name' \
-              | head -n1
-          )"
-          if [[ -z "${APP_ASSET_NAME}" ]]; then
-            echo "Could not resolve uploaded .app.tar.gz asset name for ${GITHUB_REF_NAME}"
-            exit 1
-          fi
-          APP_TAR_URL_NAME="${APP_ASSET_NAME// /%20}"
-          APP_SIG_CONTENT="$(cat "$APP_SIG")"
           VERSION="${GITHUB_REF_NAME#v}"
           PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          RELEASE_JSON="$(gh release view "${GITHUB_REF_NAME}" --json assets)"
 
-          RUNNER_ARCH="$(uname -m)"
-          if [[ "$RUNNER_ARCH" == "arm64" ]]; then
-            TARGET_ARCH="aarch64"
-          else
-            TARGET_ARCH="x86_64"
+          find_asset_id() {
+            local name="$1"
+            printf '%s' "$RELEASE_JSON" | jq -r --arg name "$name" '.assets[] | select(.name == $name) | .id' | head -n1
+          }
+
+          read_sig_asset() {
+            local id="$1"
+            gh api \
+              -H "Accept: application/octet-stream" \
+              "repos/${GITHUB_REPOSITORY}/releases/assets/${id}"
+          }
+
+          ARM_APP="filearchitect_${VERSION}_darwin-aarch64.app.tar.gz"
+          ARM_SIG_ASSET="${ARM_APP}.sig"
+          X64_APP="filearchitect_${VERSION}_darwin-x86_64.app.tar.gz"
+          X64_SIG_ASSET="${X64_APP}.sig"
+
+          ARM_SIG_ID="$(find_asset_id "$ARM_SIG_ASSET")"
+          X64_SIG_ID="$(find_asset_id "$X64_SIG_ASSET")"
+
+          if [[ -z "${ARM_SIG_ID}" || -z "${X64_SIG_ID}" ]]; then
+            echo "Missing macOS updater signature assets for one or both architectures."
+            echo "Expected: ${ARM_SIG_ASSET} and ${X64_SIG_ASSET}"
+            exit 1
           fi
-          TARGET_KEY="darwin-${TARGET_ARCH}"
 
-          APP_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${APP_TAR_URL_NAME}"
+          ARM_SIG_CONTENT="$(read_sig_asset "${ARM_SIG_ID}")"
+          X64_SIG_CONTENT="$(read_sig_asset "${X64_SIG_ID}")"
+
+          ARM_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${ARM_APP}"
+          X64_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${X64_APP}"
 
           jq -n \
             --arg version "$VERSION" \
             --arg notes "" \
             --arg pub_date "$PUB_DATE" \
-            --arg target_key "$TARGET_KEY" \
-            --arg signature "$APP_SIG_CONTENT" \
-            --arg url "$APP_URL" \
+            --arg arm_signature "$ARM_SIG_CONTENT" \
+            --arg arm_url "$ARM_URL" \
+            --arg x64_signature "$X64_SIG_CONTENT" \
+            --arg x64_url "$X64_URL" \
             '{
               version: $version,
               notes: $notes,
               pub_date: $pub_date,
               platforms: {
-                ($target_key): {
-                  signature: $signature,
-                  url: $url
+                "darwin-aarch64": {
+                  signature: $arm_signature,
+                  url: $arm_url
+                },
+                "darwin-x86_64": {
+                  signature: $x64_signature,
+                  url: $x64_url
                 }
               }
             }' > latest.json
@@ -451,11 +518,13 @@ jobs:
         startsWith(github.ref, 'refs/tags/v') &&
         needs.create-release.result == 'success' &&
         (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped') &&
+        (needs.build-macos-manifest.result == 'success' || needs.build-macos-manifest.result == 'skipped') &&
         (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
       }}
     needs:
       - create-release
       - build-macos
+      - build-macos-manifest
       - build-windows
     runs-on: ubuntu-latest
     env:
