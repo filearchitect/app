@@ -2,9 +2,45 @@
 
 ## Unreleased
 
+- No unreleased changes yet.
+
+## 0.11.10
+
+### Changed
+
+- Improved release CI reliability for TruffleHog git scans by switching to a file URI path.
+
+## 0.11.9
+
+### Changed
+
+- Improved release publishing reliability by setting the repository explicitly and fixing TruffleHog history scan paths in CI.
+
+## 0.11.8
+
 ### Added
 
-- Initial changelog workflow documentation and PR checklist.
+- Added a restart action to the post-install update toast.
+
+### Changed
+
+- Removed the obsolete "structure click behavior" preference setting.
+- Improved release workflow ordering so GitHub releases are published only after artifacts are available.
+
+## 0.11.7
+
+- Release housekeeping updates.
+
+## 0.11.6
+
+### Changed
+
+- Updated README content and product screenshots.
+
+## 0.11.5
+
+### Added
+
 - Added updater option to skip a specific version from recurring prompts.
 - Added a "Copy report" action in the structure creation failure dialog for faster support/debug sharing.
 
@@ -19,6 +55,41 @@
 ### Fixed
 
 - Removed hard page reload behavior after license activation to avoid stale-state and UX loop issues.
+
+## 0.11.4
+
+### Fixed
+
+- Hardened license and purchase links with an app URL fallback.
+
+## 0.11.3
+
+### Changed
+
+- Synced app version from the release tag before building release artifacts.
+
+## 0.11.2
+
+### Fixed
+
+- Let Tauri resolve the macOS target automatically in updater flow.
+- Corrected updater URL generation based on uploaded release asset names.
+
+## 0.11.1
+
+### Fixed
+
+- Stripped reasoning text from AI output and enforced structure-only output.
+
+### Changed
+
+- Updated release CI to pass the DeepInfra key into release builds.
+
+## 0.11.0
+
+### Changed
+
+- Prepared `0.11.0` and hardened release "latest" behavior.
 
 ## 0.9.1
 
@@ -128,7 +199,7 @@
 ### Changed
 
 - Enhanced tab functionality and user experience
-- Removed autocomplete, autoComplete, autoCapitalize and spellcheck fro^m text fields
+- Removed autocomplete, autoComplete, autoCapitalize and spellcheck from text fields
 
 ### Updated
 
