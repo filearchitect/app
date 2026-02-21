@@ -22,11 +22,13 @@ export const DEFAULT_REPLACEMENT = {
   replaceInFolders: true,
 } as const;
 
-export const EXAMPLE_STRUCTURE = `folder-name
-|	sub-folder
-|	|	file.js
-|	another-sub-folder
-|	|	document.docx`;
+export const EXAMPLE_STRUCTURE = [
+  "folder-name",
+  "|    sub-folder",
+  "|    |    file.js",
+  "|    another-sub-folder",
+  "|    |    document.docx",
+].join("\r\n");
 
 export interface Feature {
   title: string;
