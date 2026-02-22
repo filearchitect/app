@@ -2,7 +2,7 @@ const DEFAULT_FREE_VERSION_LIMIT = 5;
 
 const parsedFreeVersionLimit = Number.parseInt(
   import.meta.env.VITE_MAX_LINES_FREE_VERSION ?? "",
-  10
+  10,
 );
 
 const freeVersionLimit = Number.isFinite(parsedFreeVersionLimit)
@@ -24,10 +24,10 @@ export const DEFAULT_REPLACEMENT = {
 
 export const EXAMPLE_STRUCTURE = [
   "folder-name",
-  "|    sub-folder",
-  "|    |    file.js",
-  "|    another-sub-folder",
-  "|    |    document.docx",
+  "|  sub-folder",
+  "|  |  file.js",
+  "|  another-sub-folder",
+  "|  |  document.docx",
 ].join("\r\n");
 
 export interface Feature {
