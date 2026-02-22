@@ -35,6 +35,8 @@ const StructureSidebar: React.FC = () => {
     if (activeStructure) {
       exitStructureEditing();
     }
+
+    window.dispatchEvent(new Event("focus-structure-editor"));
   };
 
   return (
