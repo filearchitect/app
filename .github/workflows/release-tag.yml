@@ -381,9 +381,9 @@ jobs:
           PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           RELEASE_JSON="$(gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json assets)"
 
-          find_asset_id() {
+          find_asset_api_url() {
             local name="$1"
-            printf '%s' "$RELEASE_JSON" | jq -r --arg name "$name" '.assets[] | select(.name == $name) | .id' | head -n1
+            printf '%s' "$RELEASE_JSON" | jq -r --arg name "$name" '.assets[] | select(.name == $name) | .apiUrl' | head -n1
           }
 
           read_sig_asset() {
@@ -398,12 +398,21 @@ jobs:
           X64_APP="filearchitect_${VERSION}_darwin-x86_64.app.tar.gz"
           X64_SIG_ASSET="${X64_APP}.sig"
 
-          ARM_SIG_ID="$(find_asset_id "$ARM_SIG_ASSET")"
-          X64_SIG_ID="$(find_asset_id "$X64_SIG_ASSET")"
+          ARM_SIG_API_URL="$(find_asset_api_url "$ARM_SIG_ASSET")"
+          X64_SIG_API_URL="$(find_asset_api_url "$X64_SIG_ASSET")"
 
-          if [[ -z "${ARM_SIG_ID}" || -z "${X64_SIG_ID}" ]]; then
+          if [[ -z "${ARM_SIG_API_URL}" || -z "${X64_SIG_API_URL}" ]]; then
             echo "Missing macOS updater signature assets for one or both architectures."
             echo "Expected: ${ARM_SIG_ASSET} and ${X64_SIG_ASSET}"
+            exit 1
+          fi
+
+          ARM_SIG_ID="${ARM_SIG_API_URL##*/}"
+          X64_SIG_ID="${X64_SIG_API_URL##*/}"
+
+          if [[ ! "${ARM_SIG_ID}" =~ ^[0-9]+$ || ! "${X64_SIG_ID}" =~ ^[0-9]+$ ]]; then
+            echo "Could not resolve numeric release asset IDs for signature assets."
+            echo "Resolved values: ARM_SIG_ID=${ARM_SIG_ID}, X64_SIG_ID=${X64_SIG_ID}"
             exit 1
           fi
 
