@@ -44,7 +44,7 @@
         { "url": "https://filearchitect.com/*" },
         { "url": "http://filearchitect-website.test/*" },
         { "url": "https://filearchitect-website.test/*" },
-        { "url": "https://cdn.statically.io/*" },
+        { "url": "https://raw.githubusercontent.com/*" },
         { "url": "https://api.deepinfra.com/*" },
         { "url": "https://api.github.com/*" }
       ]
@@ -55,7 +55,7 @@
         { "url": "https://filearchitect.com/*" },
         { "url": "http://filearchitect-website.test/*" },
         { "url": "http://filearchitect-website.test/*" },
-        { "url": "https://cdn.statically.io/*" },
+        { "url": "https://raw.githubusercontent.com/*" },
         { "url": "https://generativelanguage.googleapis.com/*" },
         { "url": "https://api.replicate.com/*" },
         { "url": "https://stream-g.svc.rno2.c.replicate.net/*" },

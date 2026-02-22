@@ -51,9 +51,11 @@ vi.mock("@/features/structureEditor/utils/fs", () => ({
 }));
 
 // Provide deterministic network for tests
-const mockFetch = vi
-  .fn()
-  .mockImplementation(async (input: RequestInfo | URL) => {
+const pluginHttpMock = vi.hoisted(() => ({
+  fetch: vi.fn(),
+}));
+const mockFetch = pluginHttpMock.fetch.mockImplementation(
+  async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith("files.json")) {
       return {
@@ -67,11 +69,15 @@ const mockFetch = vi
       arrayBuffer: async () =>
         new TextEncoder().encode("DOCX_TEMPLATE_BYTES").buffer,
     } as any;
-  });
+  }
+);
+
+vi.mock("@tauri-apps/plugin-http", () => pluginHttpMock);
 vi.stubGlobal("fetch", mockFetch as any);
 if (typeof window !== "undefined") {
   (window as any).fetch = mockFetch as any;
 }
+
 
 // Intentionally do not statically import modules under test; we'll import them after mocks are in place.
 

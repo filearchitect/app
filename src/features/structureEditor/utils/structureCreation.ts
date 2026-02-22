@@ -3,18 +3,25 @@ import type { FileNameReplacement } from "@filearchitect/core";
 import { getStructure } from "@filearchitect/core";
 import { invoke } from "@tauri-apps/api/core";
 import { desktopDir, documentDir, extname, join } from "@tauri-apps/api/path";
+import { fetch } from "@tauri-apps/plugin-http";
 import fs from "./fs";
+
+const BLANK_FILES_INDEX_URL =
+  "https://raw.githubusercontent.com/filearchitect/blank-files/main/files/files.json";
+const BLANK_FILES_RAW_BASE_URL =
+  "https://raw.githubusercontent.com/filearchitect/blank-files/main/";
 
 // Cache for the list of available blank files from the remote source
 let remoteFilesCache: {
   [key: string]: { url: string; package?: boolean };
 } | null = null;
 let lastRemoteCacheUpdate: number = 0;
-// const REMOTE_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const REMOTE_CACHE_DURATION = 0;
+const REMOTE_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 // Cache for local blank files we've already checked
 const localFilesCache = new Map<string, boolean>();
+const unavailableRemoteExtensions = new Set<string>();
+const inFlightFunctionalDownloads = new Map<string, Promise<Uint8Array | null>>();
 
 export interface StructureCreationSummary {
   totalOperations: number;
@@ -56,31 +63,37 @@ async function getBlankFilesDir(): Promise<string> {
 
 async function updateRemoteFilesCache(): Promise<void> {
   try {
-    const response = await fetch(
-      "https://cdn.statically.io/gh/filearchitect/blank-files/main/files/files.json"
-    );
+    const response = await fetch(BLANK_FILES_INDEX_URL);
     if (response.ok) {
       const data = await response.json();
       remoteFilesCache = data.files.reduce(
         (
-          acc: { [key: string]: { url: string; package?: boolean } },
+          acc: {
+            [key: string]: { url: string; package?: boolean };
+          },
           file: { type: string; url?: string; package?: boolean }
         ) => {
           // Prefer the URL provided by the remote index if present
-          let url = file.url || "";
-          if (!url) {
-            const baseUrl = `https://cdn.statically.io/gh/filearchitect/blank-files/main/files/blank.${file.type}`;
-            url = file.package ? `${baseUrl}.zip` : baseUrl;
+          let relativePath = file.url || "";
+          if (!relativePath) {
+            relativePath = file.package
+              ? `files/blank.${file.type}.zip`
+              : `files/blank.${file.type}`;
           }
-          // If url is relative, build an absolute one
-          if (!/^https?:\/\//i.test(url)) {
-            url = `https://cdn.statically.io/gh/filearchitect/blank-files/main/${url.replace(
-              /^\/?/,
-              ""
-            )}`;
+          // If URL is absolute, use it directly and keep fallback identical.
+          if (/^https?:\/\//i.test(relativePath)) {
+            acc[file.type] = {
+              url: relativePath,
+              package: file.package || false,
+            };
+            return acc;
           }
+          const sanitizedPath = relativePath.replace(/^\/+/, "");
+          const normalizedPath = sanitizedPath.startsWith("files/")
+            ? sanitizedPath
+            : `files/${sanitizedPath}`;
           acc[file.type] = {
-            url,
+            url: `${BLANK_FILES_RAW_BASE_URL}${normalizedPath}`,
             package: file.package || false,
           };
           return acc;
@@ -88,6 +101,7 @@ async function updateRemoteFilesCache(): Promise<void> {
         {}
       );
       lastRemoteCacheUpdate = Date.now();
+      unavailableRemoteExtensions.clear();
     }
   } catch (error) {
     console.error(
@@ -129,7 +143,6 @@ async function getLocalBlankFile(
     localFilesCache.set(extension, exists);
 
     if (exists) {
-      console.log(`[Functional Blank] Found local blank file for ${extension}`);
       const data = await fs.readBinaryFile(filePath);
       return data;
     }
@@ -148,42 +161,23 @@ async function downloadAndCacheBlankFile(
     // Check if the file exists in the remote cache
     const remoteFiles = await getRemoteFilesCache();
     if (!remoteFiles || !remoteFiles[extension]) {
-      console.log(
-        `[Functional Blank] No functional blank available for ${extension}`
-      );
+      unavailableRemoteExtensions.add(extension);
       return null;
     }
 
     const fileInfo = remoteFiles[extension];
     const url = fileInfo.url;
-    console.log(`[Functional Blank] Attempting to download from: ${url}`);
-
     const response = await fetch(url);
-    console.log(`[Functional Blank] Response status: ${response.status}`);
-    console.log(
-      `[Functional Blank] Content-Type: ${response.headers.get("content-type")}`
-    );
-    console.log(
-      `[Functional Blank] Content-Length: ${response.headers.get(
-        "content-length"
-      )}`
-    );
 
     if (response.status === 200) {
       const buffer = await response.arrayBuffer();
       const data = new Uint8Array(buffer);
-
-      console.log(
-        `[Functional Blank] Successfully downloaded ${data.length} bytes`
-      );
 
       // Cache the file locally
       try {
         const blankFilesDir = await getBlankFilesDir();
 
         if (fileInfo.package) {
-          console.log(`[Functional Blank] Extracting package for ${extension}`);
-
           // For zip packages, extract the contents
           const tempZipPath = await join(
             blankFilesDir,
@@ -204,17 +198,11 @@ async function downloadAndCacheBlankFile(
           const macosxFolder = await join(blankFilesDir, "__MACOSX");
           if (await fs.exists(macosxFolder)) {
             await fs.rm(macosxFolder, { recursive: true });
-            console.log(
-              `[Functional Blank] Removed macOS specific folder: ${macosxFolder}`
-            );
           }
-
-          console.log(
-            `[Functional Blank] Extracted package for ${extension} to ${blankFilesDir}`
-          );
 
           // Update local cache
           localFilesCache.set(extension, true);
+          unavailableRemoteExtensions.delete(extension);
 
           // Return the original data as we've already processed it
           return data;
@@ -222,9 +210,9 @@ async function downloadAndCacheBlankFile(
           // For regular files, just write them directly
           const filePath = await join(blankFilesDir, `blank.${extension}`);
           await fs.writeBinaryFile(filePath, data);
-          console.log(`[Functional Blank] Cached blank file for ${extension}`);
           // Update local cache
           localFilesCache.set(extension, true);
+          unavailableRemoteExtensions.delete(extension);
         }
       } catch (cacheError) {
         console.error(
@@ -236,9 +224,7 @@ async function downloadAndCacheBlankFile(
       return data;
     }
 
-    console.log(
-      `[Functional Blank] No functional blank available for ${extension}`
-    );
+    unavailableRemoteExtensions.add(extension);
     return null;
   } catch (error) {
     console.error(
@@ -258,38 +244,41 @@ async function getFunctionalBlankFile(
     return localData;
   }
 
+  if (unavailableRemoteExtensions.has(extension)) {
+    return null;
+  }
+
+  const existingDownload = inFlightFunctionalDownloads.get(extension);
+  if (existingDownload) {
+    return await existingDownload;
+  }
+
+  const downloadPromise = downloadAndCacheBlankFile(extension).finally(() => {
+    inFlightFunctionalDownloads.delete(extension);
+  });
+  inFlightFunctionalDownloads.set(extension, downloadPromise);
+
   // If not in cache, download and cache for future use
-  return await downloadAndCacheBlankFile(extension);
+  return await downloadPromise;
 }
 
-async function createEmptyOrFunctionalFile(path: string): Promise<void> {
+async function createEmptyOrFunctionalFile(
+  path: string,
+  createFunctional: boolean
+): Promise<void> {
   try {
-    const createFunctional =
-      (await getStoreValue<boolean>("createFunctionalBlankFiles")) ?? true; // Default to true
-    console.log(
-      `[Functional Blank] Create functional files preference: ${createFunctional}`
-    );
-
     if (createFunctional) {
       const rawExtension = await extname(path);
       const extension = rawExtension
         ? rawExtension.replace(/^\./, "").toLowerCase()
         : "";
-      console.log(
-        `[Functional Blank] Creating file: ${path} with extension: ${extension}`
-      );
 
       if (extension) {
         const data = await getFunctionalBlankFile(extension);
         if (data) {
-          console.log(
-            `[Functional Blank] Writing functional blank file to: ${path}`
-          );
           await fs.writeBinaryFile(path, data);
           return;
         }
-      } else {
-        console.log(`[Functional Blank] No extension found for: ${path}`);
       }
     }
 
@@ -298,7 +287,6 @@ async function createEmptyOrFunctionalFile(path: string): Promise<void> {
     // 2. No extension
     // 3. Download failed
     // 4. Writing binary file failed
-    console.log(`[Functional Blank] Falling back to empty file for: ${path}`);
     await fs.writeFile(path, "");
   } catch (error) {
     console.error("[Functional Blank] Error creating file:", error);
@@ -378,7 +366,8 @@ export async function getStructureCreationPlan(
     replace: string;
     replaceInFiles: boolean;
     replaceInFolders: boolean;
-  }>
+  }>,
+  options?: { includeExistingTargets?: boolean }
 ): Promise<StructureCreationPlan> {
   const { operations } = await getStructureOperations(
     structureString,
@@ -386,16 +375,19 @@ export async function getStructureCreationPlan(
     replacements
   );
 
-  const existingChecks: Array<{ targetPath: string; exists: boolean }> =
-    await Promise.all(
-    operations.map(async (operation: any) => ({
-      targetPath: operation.targetPath as string,
-      exists: await fs.exists(operation.targetPath),
-    }))
-  );
-  const existingTargets = existingChecks
-    .filter((check) => check.exists)
-    .map((check) => check.targetPath);
+  let existingTargets: string[] = [];
+  if (options?.includeExistingTargets !== false) {
+    const existingChecks: Array<{ targetPath: string; exists: boolean }> =
+      await Promise.all(
+        operations.map(async (operation: any) => ({
+          targetPath: operation.targetPath as string,
+          exists: await fs.exists(operation.targetPath),
+        }))
+      );
+    existingTargets = existingChecks
+      .filter((check) => check.exists)
+      .map((check) => check.targetPath);
+  }
 
   return {
     summary: {
@@ -426,7 +418,11 @@ export async function createFoldersDetailed(
 ): Promise<CreateFoldersExecutionResult> {
   const { operations, fileReplacements, folderReplacements } =
     await getStructureOperations(structureString, baseDir, replacements);
-  const plan = await getStructureCreationPlan(structureString, baseDir, replacements);
+  const plan = await getStructureCreationPlan(structureString, baseDir, replacements, {
+    includeExistingTargets: false,
+  });
+  const createFunctionalBlankFiles =
+    (await getStoreValue<boolean>("createFunctionalBlankFiles")) ?? true;
 
   let completedCount = 0;
   const failures: FailedStructureOperation[] = [];
@@ -438,7 +434,10 @@ export async function createFoldersDetailed(
           if (operation.isDirectory) {
             await fs.mkdir(operation.targetPath, { recursive: true });
           } else {
-            await createEmptyOrFunctionalFile(operation.targetPath);
+            await createEmptyOrFunctionalFile(
+              operation.targetPath,
+              createFunctionalBlankFiles
+            );
           }
           break;
         case "copy":

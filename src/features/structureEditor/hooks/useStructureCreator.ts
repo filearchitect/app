@@ -2,7 +2,6 @@ import { getStoreValue } from "@/api/store";
 import { useStructures } from "@/features/structures/StructureContext";
 import {
   createFoldersDetailed,
-  getStructureCreationPlan,
   type CreateFoldersExecutionResult,
 } from "@/lib/filearchitect";
 import {
@@ -99,22 +98,6 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
     async (e?: React.FormEvent) => {
       e?.preventDefault();
       if (isLoading || !editorContent.trim() || !baseDir) return;
-      try {
-        const plan = await getStructureCreationPlan(
-          editorContent,
-          baseDir,
-          options.replacements || []
-        );
-        if (plan.summary.existingTargetCount > 0) {
-          toast.warning("Some targets already exist", {
-            description: `${plan.summary.existingTargetCount} path${
-              plan.summary.existingTargetCount === 1 ? "" : "s"
-            } may be overwritten or merged.`,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to prepare non-blocking creation summary:", error);
-      }
 
       await runFolderCreation();
     },

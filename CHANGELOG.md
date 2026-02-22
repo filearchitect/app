@@ -4,6 +4,19 @@
 
 - No unreleased changes yet.
 
+## 0.11.17
+
+### Changed
+
+- Switched functional blank file downloads to `raw.githubusercontent.com` and aligned Tauri HTTP capabilities accordingly.
+- Removed create-time preflight checks to speed up structure creation when clicking Create.
+- Reduced verbose functional blank console logging to keep runtime output focused on errors.
+
+### Fixed
+
+- Corrected functional blank URL resolution for relative paths from `files.json` (ensures `files/` prefix is applied).
+- Improved reliability for binary template creation (for example `.docx`, `.xlsx`, `.pptx`) by avoiding CDN responses that returned blocked/invalid payloads.
+
 ## 0.11.10
 
 ### Changed
