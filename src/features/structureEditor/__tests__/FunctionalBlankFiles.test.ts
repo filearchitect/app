@@ -97,6 +97,7 @@ describe("functional blank files", () => {
   });
 
   beforeEach(() => {
+    appFsMock.mkdir.mockClear();
     appFsMock.writeBinaryFile.mockClear();
     appFsMock.writeFile.mockClear();
     appFsMock.exists.mockClear();
@@ -122,15 +123,22 @@ describe("functional blank files", () => {
   });
 
   it("lib/filearchitect delegates to functional blank implementation", async () => {
-    const spy = vi.spyOn(
-      await import("@/features/structureEditor/utils/structureCreation"),
-      "createFolders"
+    const creationModule = await import(
+      "@/features/structureEditor/utils/structureCreation"
     );
+    const spy = vi.spyOn(creationModule, "createFolders");
 
     const { createFolders } = await import("@/lib/filearchitect");
     // Use empty structure to avoid invoking any file/network logic; we only
     // care that lib delegates to the functional implementation.
-    await createFolders("", "/base", []);
+    await createFolders("", "/base", [
+      {
+        search: "test",
+        replace: "",
+        replaceInFiles: true,
+        replaceInFolders: true,
+      },
+    ]);
 
     expect(spy).toHaveBeenCalled();
   });

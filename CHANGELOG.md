@@ -4,6 +4,14 @@
 
 - No unreleased changes yet.
 
+## 0.11.18
+
+### Fixed
+
+- Allowed empty replacement values during structure creation so deletion-style rename rules are applied (for example `test` -> ``).
+- Aligned replacement persistence/serialization logic so saved structures keep empty replacement targets.
+- Kept replacement handling consistent between preview and actual create execution.
+
 ## 0.11.17
 
 ### Changed

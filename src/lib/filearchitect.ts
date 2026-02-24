@@ -27,7 +27,7 @@ export async function createFolders(
   replacements: Replacement[] = []
 ): Promise<string> {
   const valid = replacements.filter(
-    (r) => r.search.trim().length > 0 && r.replace.trim().length > 0
+    (r) => r.search.trim().length > 0
   );
 
   const all: FileNameReplacement[] = valid
@@ -44,8 +44,6 @@ export async function createFolders(
 
   // Delegate to the structure editor implementation which supports functional blank files
   return await createFoldersWithFunctionalBlanks(structureString, baseDir, [
-    // Ensure 'all' rules also flow into specific categories for maximum compatibility
-    // The util accepts a unified list of replacements with flags; it will split internally.
     ...all.map(({ search, replace }) => ({
       search,
       replace,

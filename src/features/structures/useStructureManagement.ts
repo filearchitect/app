@@ -28,7 +28,7 @@ const serializeStructure = (
   order?: number
 ) => {
   const validReplacements = (replacements || []).filter(
-    (r) => r.search.trim() && r.replace.trim()
+    (r) => r.search.trim()
   );
 
   const frontmatter: Record<string, any> = {};

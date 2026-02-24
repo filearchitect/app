@@ -304,7 +304,7 @@ function buildReplacementGroups(
   }>
 ) {
   const valid = replacements.filter(
-    (r) => r.search.trim().length > 0 && r.replace.trim().length > 0
+    (r) => r.search.trim().length > 0
   );
 
   const allReplacements: FileNameReplacement[] = valid
@@ -312,14 +312,12 @@ function buildReplacementGroups(
     .map(({ search, replace }) => ({ search, replace }));
 
   const fileReplacements: FileNameReplacement[] = [
-    ...allReplacements,
     ...valid
       .filter((r) => r.replaceInFiles)
       .map(({ search, replace }) => ({ search, replace })),
   ];
 
   const folderReplacements: FileNameReplacement[] = [
-    ...allReplacements,
     ...valid
       .filter((r) => r.replaceInFolders)
       .map(({ search, replace }) => ({ search, replace })),
