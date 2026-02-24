@@ -63,6 +63,21 @@ jobs:
             ghcr.io/trufflesecurity/trufflehog:latest \
             git --no-verification --fail file:///work
 
+      - name: Build release notes from changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 == "## " ver { in_section=1; next }
+            in_section && /^## / { exit }
+            in_section { print }
+          ' CHANGELOG.md | sed '/^[[:space:]]*$/N;/^\n$/D' > RELEASE_NOTES.md
+
+          if [[ ! -s RELEASE_NOTES.md ]]; then
+            printf 'See CHANGELOG.md for details.\n' > RELEASE_NOTES.md
+          fi
+
       - name: Create release if missing
         shell: bash
         run: |
@@ -74,13 +89,13 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == *"-test"* ]]; then
             gh release create "${GITHUB_REF_NAME}" \
               --title "File Architect ${GITHUB_REF_NAME}" \
-              --notes "" \
+              --notes-file RELEASE_NOTES.md \
               --draft \
               --prerelease
           else
             gh release create "${GITHUB_REF_NAME}" \
               --title "File Architect ${GITHUB_REF_NAME}" \
-              --notes "" \
+              --notes-file RELEASE_NOTES.md \
               --draft
           fi
 
@@ -543,8 +558,29 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build release notes from changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 == "## " ver { in_section=1; next }
+            in_section && /^## / { exit }
+            in_section { print }
+          ' CHANGELOG.md | sed '/^[[:space:]]*$/N;/^\n$/D' > RELEASE_NOTES.md
+
+          if [[ ! -s RELEASE_NOTES.md ]]; then
+            printf 'See CHANGELOG.md for details.\n' > RELEASE_NOTES.md
+          fi
+
       - name: Publish release
         shell: bash
         run: |
           set -euo pipefail
-          gh release edit "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --draft=false
+          gh release edit "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --notes-file RELEASE_NOTES.md \
+            --draft=false
