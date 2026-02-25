@@ -25,7 +25,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@filearchitect/core": "^0.0.21",
+    "@filearchitect/core": "^0.0.22",
     "@filearchitect/ui": "^0.0.21",
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
