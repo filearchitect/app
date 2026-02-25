@@ -18,11 +18,11 @@ importers:
         specifier: ^3.2.2
         version: 3.2.2(react@18.3.1)
       '@filearchitect/core':
-        specifier: ^0.0.21
-        version: 0.0.21
+        specifier: file:../filearchitect/packages/core
+        version: file:../filearchitect/packages/core
       '@filearchitect/ui':
         specifier: ^0.0.21
-        version: 0.0.21(@filearchitect/core@0.0.21)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.2))
+        version: 0.0.21(@filearchitect/core@file:../filearchitect/packages/core)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.2))
       '@headlessui/react':
         specifier: ^2.2.9
         version: 2.2.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -685,11 +685,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@filearchitect/core@0.0.21':
-    resolution: {integrity: sha512-slYthTPPk6UniUBngr1C0WuQUM9qym+RJR7OXqZeArexdNfyr4zbmZFWLMGP2xbEMi/kQuShBiaVQ+9euSi+/w==}
+  '@filearchitect/core@file:../filearchitect/packages/core':
+    resolution: {directory: ../filearchitect/packages/core, type: directory}
 
   '@filearchitect/ui@0.0.21':
     resolution: {integrity: sha512-rC6qyrGBAIYwipzJY5Gw1oQPqg4Zud6NzgWMQOdi8jzmZKpTvppaxJ8VR3ulGS4r8sq8ps16DGQlXw1cIxSFSA==}
+    version: 0.0.21
     peerDependencies:
       '@filearchitect/core': '*'
       react: ^18.0.0 || ^19.0.0
@@ -4747,15 +4748,15 @@ snapshots:
   '@esbuild/win32-x64@0.27.3':
     optional: true
 
-  '@filearchitect/core@0.0.21':
+  '@filearchitect/core@file:../filearchitect/packages/core':
     dependencies:
       console-table-printer: 2.15.0
       jszip: 3.10.1
       yaml: 2.8.2
 
-  '@filearchitect/ui@0.0.21(@filearchitect/core@0.0.21)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.2))':
+  '@filearchitect/ui@0.0.21(@filearchitect/core@file:../filearchitect/packages/core)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.19(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
-      '@filearchitect/core': 0.0.21
+      '@filearchitect/core': file:../filearchitect/packages/core
       '@radix-ui/react-popover': 1.1.15(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-slot': 1.2.4(@types/react@18.3.28)(react@18.3.1)
       class-variance-authority: 0.7.1
