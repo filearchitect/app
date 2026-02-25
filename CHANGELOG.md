@@ -4,6 +4,17 @@
 
 - No unreleased changes yet.
 
+## 0.11.19
+
+### Added
+
+- Added Emmet-like repeater syntax support in structure input (for example `filename_$*5.psd`).
+- Added nested repeater block expansion, so children are repeated under each generated parent (for example `0_$*3` with `test` creates `0_1/test`, `0_2/test`, `0_3/test`).
+
+### Changed
+
+- Updated `@filearchitect/core` to `0.0.22` to consume repeater parsing at core level.
+
 ## 0.11.18
 
 ### Fixed
