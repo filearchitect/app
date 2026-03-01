@@ -4,6 +4,12 @@
 
 - No unreleased changes yet.
 
+## 0.11.21
+
+### Changed
+
+- Removed internal GitHub roadmap and issue-triage scaffolding from the repository to keep project docs focused on the app itself.
+
 ## 0.11.20
 
 ### Changed
