@@ -48,11 +48,11 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
     const result = await createFoldersDetailed(
       editorContent,
       baseDir,
-      options.replacements || []
+      options.replacements || [],
     );
 
     if (result.failureCount === 0) {
-      toast.success("Folders created successfully", {
+      toast.success("Structure created successfully", {
         action: autoOpenFolder
           ? undefined
           : {
@@ -101,7 +101,13 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
 
       await runFolderCreation();
     },
-    [isLoading, editorContent, baseDir, options.replacements, runFolderCreation]
+    [
+      isLoading,
+      editorContent,
+      baseDir,
+      options.replacements,
+      runFolderCreation,
+    ],
   );
 
   const handleBrowse = useCallback(async () => {
@@ -126,7 +132,7 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
         console.error("Error handling file drop:", error);
       }
     },
-    [editorContent, setEditorContent, options.replacements]
+    [editorContent, setEditorContent, options.replacements],
   );
 
   const handleMultipleFileDrop = useCallback(
@@ -147,7 +153,7 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
         console.error("Error handling multiple file drop:", error);
       }
     },
-    [editorContent, setEditorContent, options.replacements]
+    [editorContent, setEditorContent, options.replacements],
   );
 
   return {
