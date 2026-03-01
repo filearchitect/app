@@ -90,6 +90,105 @@ function canIncreaseIndent(textarea: HTMLTextAreaElement): boolean {
   return getIndentWidth(currentIndentPrefix) < allowedIndentLevel;
 }
 
+function isMultiLineSelection(textarea: HTMLTextAreaElement): boolean {
+  const { selectionStart, selectionEnd, value } = textarea;
+  if (selectionStart === selectionEnd) {
+    return false;
+  }
+
+  return value.slice(selectionStart, selectionEnd).includes("\n");
+}
+
+function updateTextareaValueAndSelection(
+  textarea: HTMLTextAreaElement,
+  nextValue: string,
+  nextSelectionStart: number,
+  nextSelectionEnd: number,
+  setEditorContent: (value: string) => void
+) {
+  setEditorContent(nextValue);
+
+  window.requestAnimationFrame(() => {
+    textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+  });
+}
+
+function indentSelectedLines(
+  textarea: HTMLTextAreaElement,
+  setEditorContent: (value: string) => void
+): boolean {
+  const { selectionStart, selectionEnd, value } = textarea;
+  const firstLineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+  const firstLine = value.slice(
+    firstLineStart,
+    value.indexOf("\n", firstLineStart) === -1
+      ? value.length
+      : value.indexOf("\n", firstLineStart)
+  );
+  const firstLineIndentPrefix = firstLine.match(/^[\t ]*/)?.[0] ?? "";
+  const allowedIndentLevel = getAllowedIndentLevelForLine(value, firstLineStart);
+
+  if (getIndentWidth(firstLineIndentPrefix) >= allowedIndentLevel) {
+    return false;
+  }
+
+  const blockToIndent = value.slice(firstLineStart, selectionEnd);
+  const lines = blockToIndent.split("\n");
+  const indentedBlock = lines.map((line) => `\t${line}`).join("\n");
+  const nextValue =
+    value.slice(0, firstLineStart) + indentedBlock + value.slice(selectionEnd);
+
+  updateTextareaValueAndSelection(
+    textarea,
+    nextValue,
+    selectionStart + 1,
+    selectionEnd + lines.length,
+    setEditorContent
+  );
+
+  return true;
+}
+
+function outdentSelectedLines(
+  textarea: HTMLTextAreaElement,
+  setEditorContent: (value: string) => void
+) {
+  const { selectionStart, selectionEnd, value } = textarea;
+  const firstLineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+  const blockToOutdent = value.slice(firstLineStart, selectionEnd);
+  const lines = blockToOutdent.split("\n");
+
+  let removedTabs = 0;
+  const outdentedBlock = lines
+    .map((line) => {
+      if (line.startsWith("\t")) {
+        removedTabs += 1;
+        return line.slice(1);
+      }
+
+      return line;
+    })
+    .join("\n");
+
+  if (removedTabs === 0) {
+    return;
+  }
+
+  const nextValue =
+    value.slice(0, firstLineStart) + outdentedBlock + value.slice(selectionEnd);
+  const nextSelectionStart =
+    selectionStart > firstLineStart ? Math.max(firstLineStart, selectionStart - 1) : selectionStart;
+  const nextSelectionEnd = Math.max(nextSelectionStart, selectionEnd - removedTabs);
+
+  updateTextareaValueAndSelection(
+    textarea,
+    nextValue,
+    nextSelectionStart,
+    nextSelectionEnd,
+    setEditorContent
+  );
+}
+
 function normalizeStructureWhitespace(text: string) {
   let normalized = false;
   let previousNonEmptyIndent = -1;
@@ -229,12 +328,35 @@ export const EditorContainer: React.FC<EditorContainerProps> = React.memo(
 
     const handleKeyDownCapture = React.useCallback(
       (event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (event.key !== "Tab" || event.shiftKey) {
+        if (event.key !== "Tab") {
           return;
         }
 
         const target = event.target;
         if (!(target instanceof HTMLTextAreaElement)) {
+          return;
+        }
+
+        if (isMultiLineSelection(target)) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (event.shiftKey) {
+            outdentSelectedLines(target, setEditorContent);
+            return;
+          }
+
+          if (indentSelectedLines(target, setEditorContent)) {
+            return;
+          }
+
+          showWhitespaceToast(
+            "You can only indent one level deeper than the previous line."
+          );
+          return;
+        }
+
+        if (event.shiftKey) {
           return;
         }
 
@@ -255,7 +377,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = React.memo(
         event.stopPropagation();
         showWhitespaceToast("You can't indent under a file. Only folders can have children.");
       },
-      [showWhitespaceToast]
+      [setEditorContent, showWhitespaceToast]
     );
 
     const handleBeforeInputCapture = React.useCallback(

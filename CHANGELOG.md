@@ -4,6 +4,15 @@
 
 - No unreleased changes yet.
 
+## 0.11.20
+
+### Changed
+
+- Hardened structure editor indentation rules so the first line cannot start indented, lines cannot jump more than one level deeper than the previous non-empty line, and empty lines below files cannot be indented.
+- Normalized leading spaces in indentation to tabs while keeping trailing spaces editable and trimming them only when creating the structure.
+- Added clearer editor feedback for blocked indentation and automatic indentation cleanup.
+- Enabled `Tab` and `Shift+Tab` to indent or outdent all selected lines together when a multi-line selection is active.
+
 ## 0.11.19
 
 ### Added
