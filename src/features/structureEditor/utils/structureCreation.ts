@@ -336,6 +336,11 @@ async function getStructureOperations(
     replaceInFolders: boolean;
   }>
 ) {
+  const sanitizedStructureString = structureString
+    .split("\n")
+    .map((line) => line.replace(/ +$/g, ""))
+    .join("\n");
+
   const { allReplacements, fileReplacements, folderReplacements } =
     buildReplacementGroups(replacements);
 
@@ -348,7 +353,7 @@ async function getStructureOperations(
     },
   } as const;
 
-  const { operations } = await getStructure(structureString, {
+  const { operations } = await getStructure(sanitizedStructureString, {
     ...options,
     rootDir: baseDir,
   });
