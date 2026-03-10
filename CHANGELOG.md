@@ -4,6 +4,19 @@
 
 - No unreleased changes yet.
 
+## 0.11.22
+
+### Fixed
+
+- Fixed saved-structure destination selection so destination changes are routed to the active saved structure state.
+- Fixed structure creation destination resolution so saved structures create files in the currently selected saved destination (not the quick/default destination).
+- Fixed TypeScript test import path usage in release builds by removing explicit `.tsx` extension usage.
+
+### Changed
+
+- Added regression coverage for saved-structure destination flow to protect browse/create destination routing behavior.
+- Documented stricter release tagging/versioning checklist and guardrails to prevent tag/version mismatch failures.
+
 ## 0.11.21
 
 ### Changed
