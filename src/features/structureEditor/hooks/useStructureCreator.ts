@@ -42,12 +42,12 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
     initializeState();
   }, []);
 
-  const runFolderCreation = useCallback(async () => {
+  const runFolderCreation = useCallback(async (targetBaseDir: string = baseDir) => {
     setIsLoading(true);
 
     const result = await createFoldersDetailed(
       editorContent,
-      baseDir,
+      targetBaseDir,
       options.replacements || [],
     );
 
@@ -59,7 +59,7 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
               label: "Open Folder",
               onClick: async () => {
                 try {
-                  await invoke("open_folder_command", { path: baseDir });
+                  await invoke("open_folder_command", { path: targetBaseDir });
                   console.log("Folder opened successfully");
                 } catch (error) {
                   console.error("Error opening folder:", error);
@@ -95,11 +95,12 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
   }, [autoOpenFolder, baseDir, editorContent, options.replacements]);
 
   const handleCreateFolders = useCallback(
-    async (e?: React.FormEvent) => {
+    async (e?: React.FormEvent, baseDirOverride?: string) => {
       e?.preventDefault();
-      if (isLoading || !editorContent.trim() || !baseDir) return;
+      const targetBaseDir = baseDirOverride ?? baseDir;
+      if (isLoading || !editorContent.trim() || !targetBaseDir) return;
 
-      await runFolderCreation();
+      await runFolderCreation(targetBaseDir);
     },
     [
       isLoading,

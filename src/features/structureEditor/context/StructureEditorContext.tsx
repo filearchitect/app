@@ -1,5 +1,6 @@
 import { useAuthContext } from "@/features/auth/AuthProvider";
 import { useStructures } from "@/features/structures/StructureContext";
+import { handleBrowseDirectory } from "../utils/folderUtils";
 import type {
   CreateFoldersExecutionResult,
 } from "@/lib/filearchitect";
@@ -68,7 +69,6 @@ export const StructureEditorProvider: React.FC<{
     executionReport,
     setExecutionReport,
     handleCreateFolders,
-    handleBrowse,
     handleFileDrop,
     handleMultipleFileDrop,
   } = useStructureCreator({
@@ -95,6 +95,20 @@ export const StructureEditorProvider: React.FC<{
     [isStructureMode, setStructureDestinationPath, setDefaultBaseDir]
   );
 
+  const handleBrowse = React.useCallback(async () => {
+    const newBaseDir = await handleBrowseDirectory(baseDir);
+    if (newBaseDir) {
+      setBaseDir(newBaseDir);
+    }
+  }, [baseDir, setBaseDir]);
+
+  const handleCreateFoldersWithResolvedBaseDir = React.useCallback(
+    async (e?: React.FormEvent) => {
+      await handleCreateFolders(e, baseDir);
+    },
+    [handleCreateFolders, baseDir]
+  );
+
   const structure = useStructure({
     content: editorContent,
     replacements,
@@ -118,7 +132,7 @@ export const StructureEditorProvider: React.FC<{
       isLoading,
       executionReport,
       setExecutionReport,
-      handleCreateFolders,
+      handleCreateFolders: handleCreateFoldersWithResolvedBaseDir,
       handleBrowse,
       handleFileDrop,
       handleMultipleFileDrop,
@@ -138,7 +152,7 @@ export const StructureEditorProvider: React.FC<{
       isLoading,
       executionReport,
       setExecutionReport,
-      handleCreateFolders,
+      handleCreateFoldersWithResolvedBaseDir,
       handleBrowse,
       handleFileDrop,
       handleMultipleFileDrop,
