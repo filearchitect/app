@@ -45,7 +45,7 @@ vi.mock("../utils/folderUtils", () => ({
 import {
   StructureEditorProvider,
   useStructureEditor,
-} from "../context/StructureEditorContext.tsx";
+} from "../context/StructureEditorContext";
 
 let contextSnapshot: ReturnType<typeof useStructureEditor> | null = null;
 
