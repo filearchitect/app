@@ -16,6 +16,11 @@ on:
         required: true
         default: false
         type: boolean
+      build_setapp_macos:
+        description: "Build Setapp macOS artifact"
+        required: true
+        default: false
+        type: boolean
       run_secret_scan:
         description: "Run TruffleHog scans"
         required: true
@@ -468,6 +473,225 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "${GITHUB_REF_NAME}" latest.json --repo "${GITHUB_REPOSITORY}" --clobber
+
+  build-setapp-macos:
+    name: Build Setapp macOS (${{ matrix.target_key }})
+    if: >-
+      ${{
+        always() &&
+        (
+          (startsWith(github.ref, 'refs/tags/v') && needs.create-release.result == 'success') ||
+          (github.event_name == 'workflow_dispatch' && inputs.build_setapp_macos)
+        )
+      }}
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_key: darwin-aarch64
+            runner: macos-14
+          - target_key: darwin-x86_64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    env:
+      VITE_APP_ENV: production
+      VITE_APP_URL: https://filearchitect.com
+      VITE_API_URL: https://filearchitect.com/api/v1
+      VITE_MAX_LINES_FREE_VERSION: 5
+      VITE_LICENSE_CHECK_GRACE_PERIOD_HOURS: 24
+      VITE_DEEPINFRA_API_KEY: ${{ secrets.VITE_DEEPINFRA_API_KEY || secrets.DEEPINFRA_API_KEY }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SETAPP_SDK_REF: 1293fb8997587900ce833894e555a35472afe9c5
+    steps:
+      - name: Validate signing configuration
+        shell: bash
+        env:
+          APPLE_CERTIFICATE_RAW: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD_RAW: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY_RAW: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID_RAW: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD_RAW: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID_RAW: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          TEAM_ID="$(printf '%s' "${APPLE_TEAM_ID_RAW:-}" | tr -d '\r\n[:space:]\"')"
+          missing=()
+          for key in APPLE_CERTIFICATE_RAW APPLE_CERTIFICATE_PASSWORD_RAW APPLE_SIGNING_IDENTITY_RAW APPLE_ID_RAW APPLE_PASSWORD_RAW; do
+            if [[ -z "${!key:-}" ]]; then
+              missing+=("$key")
+            fi
+          done
+          if [[ "${#TEAM_ID}" -lt 3 ]]; then
+            missing+=("APPLE_TEAM_ID_RAW")
+          fi
+          if (( ${#missing[@]} > 0 )); then
+            echo "Missing/invalid signing secrets: ${missing[*]}"
+            exit 1
+          fi
+
+          CERT_PATH="$RUNNER_TEMP/preflight-signing-cert.p12"
+          printf '%s' "$APPLE_CERTIFICATE_RAW" | tr -d '\r\n' | base64 -d > "$CERT_PATH"
+          openssl pkcs12 -in "$CERT_PATH" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD_RAW}" >/dev/null
+
+          echo "Signing secrets detected and preflight-validated."
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate app version matches tag
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ -z "${VERSION}" ]]; then
+            echo "Unable to derive version from tag: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+          node scripts/version-check.mjs "$VERSION"
+
+      - name: Normalize Apple team ID
+        shell: bash
+        env:
+          APPLE_TEAM_ID_RAW: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          trim() {
+            printf '%s' "$1" \
+              | tr -d '\r' \
+              | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/^"//; s/"$//'
+          }
+
+          TEAM_ID="$(trim "${APPLE_TEAM_ID_RAW:-}")"
+          if [[ ${#TEAM_ID} -lt 3 ]]; then
+            FALLBACK_TEAM_ID="$(sed -nE 's/.*"providerShortName":[[:space:]]*"([^"]+)".*/\1/p' src-tauri/tauri.conf.json | head -n1)"
+            TEAM_ID="$(trim "${FALLBACK_TEAM_ID:-}")"
+          fi
+
+          if [[ ${#TEAM_ID} -lt 3 ]]; then
+            echo "APPLE_TEAM_ID is invalid after normalization. Set APPLE_TEAM_ID repo secret to your Apple Team ID."
+            exit 1
+          fi
+
+          echo "::add-mask::$TEAM_ID"
+          echo "APPLE_TEAM_ID=$TEAM_ID" >> "$GITHUB_ENV"
+          echo "Normalized APPLE_TEAM_ID length: ${#TEAM_ID}"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Import Apple certificate into keychain
+        shell: bash
+        env:
+          APPLE_CERTIFICATE_RAW: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD_RAW: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/signing-cert.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
+
+          printf '%s' "$APPLE_CERTIFICATE_RAW" | tr -d '\r\n' | base64 -d > "$CERT_PATH"
+          openssl pkcs12 -in "$CERT_PATH" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD_RAW}" >/dev/null
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -f pkcs12 -P "$APPLE_CERTIFICATE_PASSWORD_RAW" -A -T /usr/bin/codesign -T /usr/bin/security
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate AI API key env
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${VITE_DEEPINFRA_API_KEY:-}" ]]; then
+            echo "Missing VITE_DEEPINFRA_API_KEY (or DEEPINFRA_API_KEY) repository secret."
+            exit 1
+          fi
+
+      - name: Fetch Setapp SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="$RUNNER_TEMP/setapp-framework"
+          git clone --depth 1 https://github.com/MacPaw/Setapp-framework.git "$SDK_ROOT"
+          git -C "$SDK_ROOT" checkout --detach "$SETAPP_SDK_REF"
+          echo "SETAPP_SDK_DIR=$SDK_ROOT/Setapp.xcframework/macos-arm64_x86_64" >> "$GITHUB_ENV"
+          echo "SETAPP_RESOURCES_BUNDLE=$SDK_ROOT/SetappFramework-Resources.bundle" >> "$GITHUB_ENV"
+
+      - name: Build Setapp app
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset APPLE_CERTIFICATE
+          unset APPLE_CERTIFICATE_PASSWORD
+          bash ./scripts/build_setapp_macos.sh
+
+      - name: Package Setapp app
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_DIR="src-tauri/target/release/bundle/macos/File Architect.app"
+          if [[ ! -d "$APP_DIR" ]]; then
+            echo "Missing Setapp app bundle at $APP_DIR"
+            exit 1
+          fi
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ -z "${VERSION}" || "${VERSION}" == "${GITHUB_REF_NAME}" ]]; then
+            VERSION="run-${GITHUB_RUN_NUMBER}"
+          fi
+
+          ZIP_NAME="filearchitect_setapp_${VERSION}_${{ matrix.target_key }}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_NAME"
+
+          DMG_PATH="$(find src-tauri/target/release/bundle -maxdepth 3 -name '*.dmg' | head -n1 || true)"
+          if [[ -n "${DMG_PATH}" ]]; then
+            cp "$DMG_PATH" "filearchitect_setapp_${VERSION}_${{ matrix.target_key }}.dmg"
+          fi
+
+      - name: Upload release assets (Setapp macOS)
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          files=(filearchitect_setapp_${VERSION}_${{ matrix.target_key }}.zip)
+          if [[ -f "filearchitect_setapp_${VERSION}_${{ matrix.target_key }}.dmg" ]]; then
+            files+=(filearchitect_setapp_${VERSION}_${{ matrix.target_key }}.dmg)
+          fi
+          gh release upload "${GITHUB_REF_NAME}" "${files[@]}" --clobber
+
+      - name: Upload dry-run artifacts (Setapp macOS)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: setapp-macos-${{ matrix.target_key }}-${{ github.run_number }}
+          path: |
+            filearchitect_setapp_*.zip
+            filearchitect_setapp_*.dmg
+          if-no-files-found: error
 
   build-windows:
     name: Build Windows

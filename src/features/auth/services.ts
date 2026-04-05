@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { documentDir, join } from "@tauri-apps/api/path";
 import { exists, readTextFile } from "@tauri-apps/plugin-fs";
 import { LicenseError, LicenseValidationError, MachineIdError } from "./errors";
+import { createSetappLicense } from "./setapp";
 import { ServerLicense, ServerMachineResponse, StoredLicense } from "./types";
 
 const MACHINE_ID_KEY = "machineId";
@@ -16,6 +17,8 @@ const GRACE_PERIOD_MS =
   60 *
   60 *
   1000;
+
+const IS_SETAPP_BUILD = import.meta.env.VITE_IS_SETAPP === "true";
 
 interface OverrideSettings {
   machineId?: string;
@@ -178,6 +181,7 @@ export class LicenseService {
   ): StoredLicense {
     return {
       uuid: serverLicense.uuid,
+      source: serverLicense.type === "trial" ? "trial" : "direct",
       type: serverLicense.type,
       license_key: licenseKey || serverLicense.license_key,
       expires_at: serverLicense.expires_at,
@@ -284,6 +288,12 @@ export class LicenseService {
    * @returns The license
    */
   static async checkLicense(): Promise<StoredLicense | null> {
+    if (IS_SETAPP_BUILD) {
+      const setappLicense = createSetappLicense();
+      await setStoreValue(LICENSE_KEY, setappLicense);
+      return setappLicense;
+    }
+
     // Development override for testing different license types
     if (import.meta.env.DEV && import.meta.env.VITE_OVERRIDE_LICENSE) {
       const overrideType = import.meta.env.VITE_OVERRIDE_LICENSE as
@@ -312,6 +322,7 @@ export class LicenseService {
       // Create mock license based on override type
       const mockLicense: StoredLicense = {
         uuid: `dev-override-${overrideType}-${Date.now()}`,
+        source: isTrialLike ? "trial" : "direct",
         type: normalizedType,
         license_key: isTrialLike ? null : `dev-${normalizedType}-key`,
         expires_at: this.getMockExpirationDate(overrideType),

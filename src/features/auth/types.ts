@@ -7,6 +7,8 @@ export interface ServerMachineResponse {
   };
 }
 
+export type LicenseSource = "direct" | "trial" | "setapp";
+
 export interface ServerLicense {
   uuid: string;
   license_key: string | null;
@@ -22,10 +24,19 @@ export interface ServerLicense {
 
 export interface StoredLicense {
   uuid: string;
+  source?: LicenseSource;
   type: "trial" | "once" | "yearly";
   license_key: string | null;
   expires_at: string | null;
   ai_expires_at: string | null;
   updates_expires_at: string | null;
   last_checked_at: string;
+}
+
+export interface LicenseEntitlements {
+  source: LicenseSource;
+  hasCoreAccess: boolean;
+  hasAiAccess: boolean;
+  canManageLicense: boolean;
+  isNonExpiringCoreAccess: boolean;
 }

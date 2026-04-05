@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod setapp;
+
 // -----------------
 // Imports
 // -----------------
@@ -558,17 +560,24 @@ fn extract_zip(zip_path: String, destination_path: String) -> Result<(), String>
 fn main() {
     dotenv().ok();
 
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_os::init());
+
+    #[cfg(not(all(target_os = "macos", setapp_build)))]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder
         .setup(|app| {
             ensure_default_templates()?;
             
@@ -644,6 +653,11 @@ fn main() {
                 let menu = Menu::with_items(handle, &[&app_menu, &edit_menu, &window_menu])?;
                 app.set_menu(menu)?;
             }
+
+            #[cfg(all(target_os = "macos", setapp_build))]
+            {
+                let _ = setapp::show_release_notes_if_needed();
+            }
             
             Ok(())
         })
@@ -676,6 +690,9 @@ fn main() {
             initialize_app,
             handle_deep_link,
             extract_zip,
+            setapp::get_setapp_status,
+            setapp::get_setapp_purchase_type,
+            setapp::show_setapp_release_notes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

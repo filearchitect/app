@@ -39,3 +39,5 @@ archives/
 .env.test
 
 .xwin-cache
+src-tauri/.setapp-sdk/
+src-tauri/vendor/setapp/
