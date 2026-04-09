@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "File Architect Setapp Test",
+  "identifier": "com.filearchitect.app-setapp-local",
+  "bundle": {
+    "targets": ["app"],
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "infoPlist": "Info.setapp.plist",
+      "minimumSystemVersion": "11.5"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["filearchitect"]
+      }
+    }
+  }
+}

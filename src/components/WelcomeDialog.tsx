@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useEffect } from "react";
+import { isSetappBuild } from "@/features/auth/setapp";
 
 interface WelcomeDialogProps {
   open: boolean;
@@ -16,6 +17,8 @@ interface WelcomeDialogProps {
 }
 
 export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
+  const setappBuild = isSetappBuild();
+
   useEffect(() => {
     const checkFirstVisit = async () => {
       const hasVisited = await getStoreValue<boolean>("hasVisitedBefore");
@@ -60,18 +63,26 @@ export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
                     </a>{" "}
                     to learn more about the syntax and the advanced features.
                   </p>
-                  <p>
-                    You’re currently using the trial version, which gives you
-                    full access to all features for 7 days. After that, you'll
-                    need to{" "}
-                    <a
-                      className="link"
-                      href="https://filearchitect.com/purchase"
-                    >
-                      purchase a license
-                    </a>{" "}
-                    to continue using the app.
-                  </p>
+                  {setappBuild ? (
+                    <p>
+                      Setapp includes full core access for this build. Updates
+                      and billing are managed by Setapp, and AI features are not
+                      included in the Setapp version.
+                    </p>
+                  ) : (
+                    <p>
+                      You’re currently using the trial version, which gives you
+                      full access to all features for 7 days. After that, you'll
+                      need to{" "}
+                      <a
+                        className="link"
+                        href="https://filearchitect.com/purchase"
+                      >
+                        purchase a license
+                      </a>{" "}
+                      to continue using the app.
+                    </p>
+                  )}
                 </div>
 
                 <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-gray-700 shadow-sm text-lg">

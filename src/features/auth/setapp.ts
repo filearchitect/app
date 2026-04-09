@@ -1,5 +1,6 @@
 import {
   LicenseEntitlements,
+  SetappRuntimeStatus,
   LicenseSource,
   StoredLicense,
 } from "./types";
@@ -54,6 +55,33 @@ export function createSetappLicense(
     ai_expires_at: null,
     updates_expires_at: null,
     last_checked_at: lastCheckedAt,
+    purchase_type: null,
+    setapp_status: {
+      enabled: true,
+      available: true,
+      active: true,
+      source: "setapp",
+      purchase_type: null,
+      expiration_date: null,
+    },
+  };
+}
+
+export function createSetappLicenseFromStatus(
+  status: SetappRuntimeStatus,
+  lastCheckedAt = new Date().toISOString()
+): StoredLicense {
+  return {
+    uuid: "setapp-license",
+    source: "setapp",
+    type: "once",
+    license_key: null,
+    expires_at: status.expiration_date,
+    ai_expires_at: null,
+    updates_expires_at: null,
+    last_checked_at: lastCheckedAt,
+    purchase_type: status.purchase_type,
+    setapp_status: status,
   };
 }
 
@@ -74,12 +102,14 @@ export function getLicenseEntitlements(
   }
 
   if (source === "setapp") {
+    const isActive = license.setapp_status?.active ?? true;
+
     return {
       source,
-      hasCoreAccess: true,
+      hasCoreAccess: isActive,
       hasAiAccess: false,
       canManageLicense: false,
-      isNonExpiringCoreAccess: true,
+      isNonExpiringCoreAccess: isActive,
     };
   }
 

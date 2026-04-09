@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createSetappLicense,
+  createSetappLicenseFromStatus,
   getLicenseEntitlements,
   getLicenseSource,
   isSetappLicense,
@@ -31,6 +32,27 @@ describe("Setapp license helpers", () => {
     expect(entitlements.hasAiAccess).toBe(false);
     expect(entitlements.canManageLicense).toBe(false);
     expect(entitlements.isNonExpiringCoreAccess).toBe(true);
+  });
+
+  it("projects native Setapp status into a stored license", () => {
+    const license = createSetappLicenseFromStatus(
+      {
+        enabled: true,
+        available: true,
+        active: false,
+        source: "setapp",
+        purchase_type: "single_app",
+        expiration_date: "2026-05-01T00:00:00.000Z",
+      },
+      "2026-04-01T00:00:00.000Z"
+    );
+
+    expect(license.source).toBe("setapp");
+    expect(license.type).toBe("once");
+    expect(license.expires_at).toBe("2026-05-01T00:00:00.000Z");
+    expect(license.purchase_type).toBe("single_app");
+    expect(license.setapp_status?.active).toBe(false);
+    expect(license.setapp_status?.available).toBe(true);
   });
 
   it("treats active direct trial access as expiring and manageable", () => {
@@ -89,6 +111,20 @@ describe("Setapp auth resolution", () => {
     const makeApiRequest = vi.fn();
     const getStoreValue = vi.fn().mockResolvedValue(null);
     const setStoreValue = vi.fn().mockResolvedValue(undefined);
+    const invoke = vi.fn().mockImplementation((command: string) => {
+      if (command === "get_setapp_status") {
+        return Promise.resolve({
+          enabled: true,
+          available: true,
+          active: true,
+          source: "setapp",
+          purchase_type: null,
+          expiration_date: null,
+        });
+      }
+
+      return Promise.resolve(null);
+    });
 
     vi.doMock("@/api/http", () => ({
       makeApiRequest,
@@ -98,10 +134,11 @@ describe("Setapp auth resolution", () => {
       setStoreValue,
     }));
     vi.doMock("@tauri-apps/api/core", () => ({
-      invoke: vi.fn(),
+      invoke,
     }));
     vi.doMock("@tauri-apps/api/path", () => ({
       documentDir: vi.fn(),
+      homeDir: vi.fn(),
       join: vi.fn(),
     }));
     vi.doMock("@tauri-apps/plugin-fs", () => ({
@@ -114,9 +151,67 @@ describe("Setapp auth resolution", () => {
     const license = await LicenseService.checkLicense();
 
     expect(license?.source).toBe("setapp");
+    expect(license?.setapp_status?.active).toBe(true);
+    expect(invoke).toHaveBeenCalledWith("get_setapp_status");
     expect(makeApiRequest).not.toHaveBeenCalled();
     expect(getStoreValue).not.toHaveBeenCalled();
     expect(setStoreValue).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses a local Setapp override from ~/fa.json when present", async () => {
+    vi.stubEnv("VITE_IS_SETAPP", "true");
+
+    const makeApiRequest = vi.fn();
+    const getStoreValue = vi.fn().mockResolvedValue(null);
+    const setStoreValue = vi.fn().mockResolvedValue(undefined);
+    const invoke = vi.fn();
+    const homeDir = vi.fn().mockResolvedValue("/Users/test");
+    const documentDir = vi.fn().mockResolvedValue("/Users/test/Documents");
+    const join = vi.fn((base: string, file: string) =>
+      Promise.resolve(`${base}/${file}`)
+    );
+    const exists = vi.fn((path: string) =>
+      Promise.resolve(path === "/Users/test/fa.json")
+    );
+    const readTextFile = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        setapp: {
+          active: true,
+          available: true,
+          purchaseType: "single_app",
+        },
+      })
+    );
+
+    vi.doMock("@/api/http", () => ({
+      makeApiRequest,
+    }));
+    vi.doMock("@/api/store", () => ({
+      getStoreValue,
+      setStoreValue,
+    }));
+    vi.doMock("@tauri-apps/api/core", () => ({
+      invoke,
+    }));
+    vi.doMock("@tauri-apps/api/path", () => ({
+      documentDir,
+      homeDir,
+      join,
+    }));
+    vi.doMock("@tauri-apps/plugin-fs", () => ({
+      exists,
+      readTextFile,
+    }));
+
+    const { LicenseService } = await import("../services");
+
+    const license = await LicenseService.checkLicense();
+
+    expect(license?.source).toBe("setapp");
+    expect(license?.setapp_status?.active).toBe(true);
+    expect(license?.purchase_type).toBe("single_app");
+    expect(invoke).not.toHaveBeenCalled();
+    expect(makeApiRequest).not.toHaveBeenCalled();
   });
 
   it("initializes the auth provider from a Setapp entitlement", async () => {

@@ -25,16 +25,26 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/setapp_bridge.mm");
     println!("cargo:rerun-if-env-changed=VITE_IS_SETAPP");
+    println!("cargo:rerun-if-env-changed=SETAPP_LOCAL_TEST");
     println!("cargo:rerun-if-env-changed=SETAPP_SDK_DIR");
     println!("cargo:rustc-check-cfg=cfg(setapp_build)");
+    println!("cargo:rustc-check-cfg=cfg(setapp_local_test)");
     println!("cargo:rustc-env=TAURI_BUNDLE_MACOS_INFO_PLIST_URL_SCHEMES=filearchitect");
 
     let is_setapp_build = std::env::var("VITE_IS_SETAPP").as_deref() == Ok("true");
+    let is_setapp_local_test =
+        std::env::var("SETAPP_LOCAL_TEST").as_deref() == Ok("true");
     if is_setapp_build {
         println!("cargo:rustc-cfg=setapp_build");
     }
+    if is_setapp_local_test {
+        println!("cargo:rustc-cfg=setapp_local_test");
+    }
 
-    if is_setapp_build && std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+    if is_setapp_build
+        && !is_setapp_local_test
+        && std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos")
+    {
         let sdk_dir = resolve_setapp_sdk_dir();
         let lib_path = sdk_dir.join("libSetapp.a");
         let headers_path = sdk_dir.join("Headers");

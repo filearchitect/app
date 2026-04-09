@@ -44,6 +44,15 @@ extern "C" int filearchitect_setapp_purchase_type() {
     return 0;
 }
 
+extern "C" long long filearchitect_setapp_expiration_timestamp() {
+    STPManager *manager = sharedManager();
+    if (manager == nil || manager.subscription == nil || manager.subscription.expirationDate == nil) {
+        return 0;
+    }
+
+    return (long long)[manager.subscription.expirationDate timeIntervalSince1970];
+}
+
 extern "C" bool filearchitect_setapp_show_release_notes_if_needed() {
     STPManager *manager = sharedManager();
     if (manager == nil) {
@@ -61,6 +70,16 @@ extern "C" bool filearchitect_setapp_show_release_notes() {
     }
 
     [manager showReleaseNotesWindow];
+    return true;
+}
+
+extern "C" bool filearchitect_setapp_report_usage_event(int usageEvent) {
+    STPManager *manager = sharedManager();
+    if (manager == nil) {
+        return false;
+    }
+
+    [manager reportUsageEvent:(STPUsageEvent)usageEvent];
     return true;
 }
 

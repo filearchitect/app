@@ -8,6 +8,16 @@ export interface ServerMachineResponse {
 }
 
 export type LicenseSource = "direct" | "trial" | "setapp";
+export type SetappPurchaseType = "membership" | "single_app";
+
+export interface SetappRuntimeStatus {
+  enabled: boolean;
+  available: boolean;
+  active: boolean;
+  source: "setapp";
+  purchase_type: SetappPurchaseType | null;
+  expiration_date: string | null;
+}
 
 export interface ServerLicense {
   uuid: string;
@@ -31,6 +41,8 @@ export interface StoredLicense {
   ai_expires_at: string | null;
   updates_expires_at: string | null;
   last_checked_at: string;
+  purchase_type?: SetappPurchaseType | null;
+  setapp_status?: SetappRuntimeStatus;
 }
 
 export interface LicenseEntitlements {
@@ -39,4 +51,12 @@ export interface LicenseEntitlements {
   hasAiAccess: boolean;
   canManageLicense: boolean;
   isNonExpiringCoreAccess: boolean;
+}
+
+export interface SetappOverrideSettings {
+  enabled?: boolean;
+  available?: boolean;
+  active?: boolean;
+  purchaseType?: SetappPurchaseType | null;
+  expirationDate?: string | null;
 }

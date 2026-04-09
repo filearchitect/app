@@ -36,6 +36,21 @@ trim() {
     | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/^"//; s/"$//'
 }
 
+notarize_and_staple() {
+  local artifact_path="$1"
+  local artifact_label="$2"
+
+  echo "Notarizing ${artifact_label}..."
+  xcrun notarytool submit "$artifact_path" \
+    --apple-id "$APPLE_ID" \
+    --password "$APPLE_PASSWORD" \
+    --team-id "$APPLE_TEAM_ID" \
+    --wait
+
+  echo "Stapling ${artifact_label}..."
+  xcrun stapler staple "$artifact_path"
+}
+
 require_env() {
   local name="$1"
   local value="${!name:-}"
@@ -119,14 +134,17 @@ ZIP_PATH="$ARTIFACTS_DIR/$ZIP_NAME"
 ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE_DIR" "$ZIP_PATH"
 
 DMG_PATH="$(find "$BUNDLE_ROOT_DIR" -maxdepth 3 -name '*.dmg' | head -n1 || true)"
+FINAL_DMG_PATH=""
 if [[ -n "${DMG_PATH}" ]]; then
-  cp "$DMG_PATH" "$ARTIFACTS_DIR/filearchitect_setapp_${SETAPP_VERSION_TAG}.dmg"
+  FINAL_DMG_PATH="$ARTIFACTS_DIR/filearchitect_setapp_${SETAPP_VERSION_TAG}.dmg"
+  cp "$DMG_PATH" "$FINAL_DMG_PATH"
+  notarize_and_staple "$FINAL_DMG_PATH" "Setapp DMG"
 fi
 
 echo
 echo "Setapp build complete."
 echo "App bundle: $APP_BUNDLE_DIR"
 echo "ZIP artifact: $ZIP_PATH"
-if [[ -n "${DMG_PATH}" ]]; then
-  echo "DMG artifact: $ARTIFACTS_DIR/filearchitect_setapp_${SETAPP_VERSION_TAG}.dmg"
+if [[ -n "${FINAL_DMG_PATH}" ]]; then
+  echo "DMG artifact: $FINAL_DMG_PATH"
 fi
