@@ -1,7 +1,7 @@
-#[cfg(all(target_os = "macos", setapp_build))]
+#[cfg(all(target_os = "macos", setapp_build, setapp_local_test))]
 use serde::Deserialize;
 use serde::Serialize;
-#[cfg(all(target_os = "macos", setapp_build))]
+#[cfg(all(target_os = "macos", setapp_build, setapp_local_test))]
 use std::{fs, path::PathBuf};
 
 #[derive(Clone, Debug, Serialize)]
@@ -14,13 +14,13 @@ pub struct SetappStatus {
     pub expiration_date: Option<String>,
 }
 
-#[cfg(all(target_os = "macos", setapp_build))]
+#[cfg(all(target_os = "macos", setapp_build, setapp_local_test))]
 #[derive(Debug, Deserialize)]
 struct OverrideSettings {
     setapp: Option<SetappOverrideSettings>,
 }
 
-#[cfg(all(target_os = "macos", setapp_build))]
+#[cfg(all(target_os = "macos", setapp_build, setapp_local_test))]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SetappOverrideSettings {
@@ -31,7 +31,7 @@ struct SetappOverrideSettings {
     expiration_date: Option<String>,
 }
 
-#[cfg(all(target_os = "macos", setapp_build))]
+#[cfg(all(target_os = "macos", setapp_build, setapp_local_test))]
 impl SetappOverrideSettings {
     fn into_status(self) -> SetappStatus {
         SetappStatus {
@@ -49,7 +49,7 @@ impl SetappOverrideSettings {
     }
 }
 
-#[cfg(all(target_os = "macos", setapp_build))]
+#[cfg(all(target_os = "macos", setapp_build, setapp_local_test))]
 fn override_file_paths() -> Option<[PathBuf; 2]> {
     std::env::var_os("HOME").map(|home| {
         let home = PathBuf::from(home);
@@ -57,7 +57,7 @@ fn override_file_paths() -> Option<[PathBuf; 2]> {
     })
 }
 
-#[cfg(all(target_os = "macos", setapp_build))]
+#[cfg(all(target_os = "macos", setapp_build, setapp_local_test))]
 fn local_override_status() -> Option<SetappStatus> {
     let paths = override_file_paths()?;
 
@@ -117,10 +117,6 @@ mod platform {
     }
 
     pub fn get_status() -> SetappStatus {
-        if let Some(status) = super::local_override_status() {
-            return status;
-        }
-
         let available = unsafe { filearchitect_setapp_is_available() };
         let active = if available {
             unsafe { filearchitect_setapp_is_active() }
@@ -148,10 +144,6 @@ mod platform {
     }
 
     pub fn get_purchase_type() -> Option<String> {
-        if let Some(status) = super::local_override_status() {
-            return status.purchase_type.map(str::to_string);
-        }
-
         match unsafe { filearchitect_setapp_purchase_type() } {
             1 => Some("membership".to_string()),
             2 => Some("single_app".to_string()),
@@ -160,10 +152,6 @@ mod platform {
     }
 
     pub fn show_release_notes() -> Result<(), String> {
-        if super::local_override_status().is_some() {
-            return Ok(());
-        }
-
         if unsafe { filearchitect_setapp_show_release_notes() } {
             Ok(())
         } else {
@@ -172,10 +160,6 @@ mod platform {
     }
 
     pub fn show_release_notes_if_needed() -> Result<(), String> {
-        if super::local_override_status().is_some() {
-            return Ok(());
-        }
-
         if unsafe { filearchitect_setapp_show_release_notes_if_needed() } {
             Ok(())
         } else {
@@ -184,10 +168,6 @@ mod platform {
     }
 
     pub fn report_usage() {
-        if super::local_override_status().is_some() {
-            return;
-        }
-
         let _ = unsafe { filearchitect_setapp_report_usage_event(2) };
     }
 }

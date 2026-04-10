@@ -160,6 +160,7 @@ describe("Setapp auth resolution", () => {
 
   it("uses a local Setapp override from ~/fa.json when present", async () => {
     vi.stubEnv("VITE_IS_SETAPP", "true");
+    vi.stubEnv("VITE_SETAPP_LOCAL_TEST", "true");
 
     const makeApiRequest = vi.fn();
     const getStoreValue = vi.fn().mockResolvedValue(null);
@@ -211,6 +212,76 @@ describe("Setapp auth resolution", () => {
     expect(license?.setapp_status?.active).toBe(true);
     expect(license?.purchase_type).toBe("single_app");
     expect(invoke).not.toHaveBeenCalled();
+    expect(makeApiRequest).not.toHaveBeenCalled();
+  });
+
+  it("ignores a local Setapp override in the real Setapp build", async () => {
+    vi.stubEnv("VITE_IS_SETAPP", "true");
+
+    const makeApiRequest = vi.fn();
+    const getStoreValue = vi.fn().mockResolvedValue(null);
+    const setStoreValue = vi.fn().mockResolvedValue(undefined);
+    const invoke = vi.fn().mockImplementation((command: string) => {
+      if (command === "get_setapp_status") {
+        return Promise.resolve({
+          enabled: true,
+          available: true,
+          active: false,
+          source: "setapp",
+          purchase_type: null,
+          expiration_date: null,
+        });
+      }
+
+      return Promise.resolve(null);
+    });
+    const homeDir = vi.fn().mockResolvedValue("/Users/test");
+    const documentDir = vi.fn().mockResolvedValue("/Users/test/Documents");
+    const join = vi.fn((base: string, file: string) =>
+      Promise.resolve(`${base}/${file}`)
+    );
+    const exists = vi.fn((path: string) =>
+      Promise.resolve(path === "/Users/test/fa.json")
+    );
+    const readTextFile = vi.fn().mockResolvedValue(
+      JSON.stringify({
+        setapp: {
+          active: true,
+          available: true,
+          purchaseType: "single_app",
+        },
+      })
+    );
+
+    vi.doMock("@/api/http", () => ({
+      makeApiRequest,
+    }));
+    vi.doMock("@/api/store", () => ({
+      getStoreValue,
+      setStoreValue,
+    }));
+    vi.doMock("@tauri-apps/api/core", () => ({
+      invoke,
+    }));
+    vi.doMock("@tauri-apps/api/path", () => ({
+      documentDir,
+      homeDir,
+      join,
+    }));
+    vi.doMock("@tauri-apps/plugin-fs", () => ({
+      exists,
+      readTextFile,
+    }));
+
+    const { LicenseService } = await import("../services");
+
+    const license = await LicenseService.checkLicense();
+
+    expect(license?.source).toBe("setapp");
+    expect(license?.setapp_status?.active).toBe(false);
+    expect(license?.purchase_type).toBeNull();
+    expect(invoke).toHaveBeenCalledWith("get_setapp_status");
+    expect(readTextFile).not.toHaveBeenCalled();
     expect(makeApiRequest).not.toHaveBeenCalled();
   });
 

@@ -25,6 +25,7 @@ const GRACE_PERIOD_MS =
   1000;
 
 const IS_SETAPP_BUILD = import.meta.env.VITE_IS_SETAPP === "true";
+const IS_SETAPP_LOCAL_TEST = import.meta.env.VITE_SETAPP_LOCAL_TEST === "true";
 
 interface OverrideSettings {
   machineId?: string;
@@ -177,11 +178,13 @@ export class LicenseService {
   }
 
   private static async getSetappStatus(): Promise<SetappRuntimeStatus> {
-    const overrideSettings = await readOverrideSettings();
-    if (overrideSettings?.setapp) {
-      const status = this.normalizeSetappOverride(overrideSettings.setapp);
-      console.log("🔧 Using local Setapp override from fa.json:", status);
-      return status;
+    if (IS_SETAPP_LOCAL_TEST) {
+      const overrideSettings = await readOverrideSettings();
+      if (overrideSettings?.setapp) {
+        const status = this.normalizeSetappOverride(overrideSettings.setapp);
+        console.log("🔧 Using local Setapp override from fa.json:", status);
+        return status;
+      }
     }
 
     const status = await invoke<SetappRuntimeStatus>("get_setapp_status");

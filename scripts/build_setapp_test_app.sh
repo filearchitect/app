@@ -18,6 +18,7 @@ export VITE_APP_ENV=production
 export VITE_APP_URL='https://filearchitect.com'
 export VITE_API_URL='https://filearchitect.com/api/v1'
 export VITE_IS_SETAPP='true'
+export VITE_SETAPP_LOCAL_TEST='true'
 export SETAPP_LOCAL_TEST='true'
 
 pnpm tauri build --config src-tauri/tauri.setapp-local.conf.json
