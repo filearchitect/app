@@ -1,10 +1,17 @@
 import { makeApiRequest } from "@/api/http";
 import { getStoreValue, setStoreValue } from "@/api/store";
 import { invoke } from "@tauri-apps/api/core";
-import { documentDir, join } from "@tauri-apps/api/path";
+import { documentDir, homeDir, join } from "@tauri-apps/api/path";
 import { exists, readTextFile } from "@tauri-apps/plugin-fs";
 import { LicenseError, LicenseValidationError, MachineIdError } from "./errors";
-import { ServerLicense, ServerMachineResponse, StoredLicense } from "./types";
+import { createSetappLicenseFromStatus } from "./setapp";
+import {
+  ServerLicense,
+  ServerMachineResponse,
+  SetappOverrideSettings,
+  SetappRuntimeStatus,
+  StoredLicense,
+} from "./types";
 
 const MACHINE_ID_KEY = "machineId";
 const LICENSE_KEY = "license";
@@ -17,37 +24,43 @@ const GRACE_PERIOD_MS =
   60 *
   1000;
 
+const IS_SETAPP_BUILD = import.meta.env.VITE_IS_SETAPP === "true";
+const IS_SETAPP_LOCAL_TEST = import.meta.env.VITE_SETAPP_LOCAL_TEST === "true";
+
 interface OverrideSettings {
   machineId?: string;
+  setapp?: SetappOverrideSettings;
 }
 
 /**
- * Reads override settings from ~/Documents/fa.json
+ * Reads override settings from ~/fa.json or ~/Documents/fa.json
  * @returns Override settings object or null if file doesn't exist or is invalid
  */
 async function readOverrideSettings(): Promise<OverrideSettings | null> {
   try {
+    const homePath = await homeDir();
     const documentsPath = await documentDir();
-    const overrideFilePath = await join(documentsPath, "fa.json");
+    const overrideFilePaths = [
+      await join(homePath, "fa.json"),
+      await join(documentsPath, "fa.json"),
+    ];
 
-    const fileExists = await exists(overrideFilePath);
-    if (!fileExists) {
-      return null;
+    for (const overrideFilePath of overrideFilePaths) {
+      const fileExists = await exists(overrideFilePath);
+      if (!fileExists) {
+        continue;
+      }
+
+      const fileContent = await readTextFile(overrideFilePath);
+      const settings = JSON.parse(fileContent) as OverrideSettings;
+
+      console.log("🔧 Override settings loaded from fa.json:", settings);
+      return settings;
     }
 
-    const fileContent = await readTextFile(overrideFilePath);
-    const settings = JSON.parse(fileContent) as OverrideSettings;
-
-    console.log(
-      "🔧 Override settings loaded from ~/Documents/fa.json:",
-      settings
-    );
-    return settings;
+    return null;
   } catch (error) {
-    console.error(
-      "Failed to read override settings from ~/Documents/fa.json:",
-      error
-    );
+    console.error("Failed to read override settings from fa.json:", error);
     return null;
   }
 }
@@ -69,11 +82,11 @@ export class MachineIdService {
 
   static async getMachineId(): Promise<string | null> {
     try {
-      // Check for override from ~/Documents/fa.json first
+      // Check for local override settings before using machine-specific state.
       const overrideSettings = await readOverrideSettings();
       if (overrideSettings?.machineId) {
         console.log(
-          `🔧 Using machine ID override from ~/Documents/fa.json: ${overrideSettings.machineId}`
+          `🔧 Using machine ID override from fa.json: ${overrideSettings.machineId}`
         );
         return overrideSettings.machineId;
       }
@@ -151,6 +164,39 @@ export class MachineIdService {
 export class LicenseService {
   static readonly GRACE_PERIOD_MS = GRACE_PERIOD_MS;
 
+  private static normalizeSetappOverride(
+    override: SetappOverrideSettings
+  ): SetappRuntimeStatus {
+    return {
+      enabled: override.enabled ?? true,
+      available: override.available ?? true,
+      active: override.active ?? true,
+      source: "setapp",
+      purchase_type: override.purchaseType ?? null,
+      expiration_date: override.expirationDate ?? null,
+    };
+  }
+
+  private static async getSetappStatus(): Promise<SetappRuntimeStatus> {
+    if (IS_SETAPP_LOCAL_TEST) {
+      const overrideSettings = await readOverrideSettings();
+      if (overrideSettings?.setapp) {
+        const status = this.normalizeSetappOverride(overrideSettings.setapp);
+        console.log("🔧 Using local Setapp override from fa.json:", status);
+        return status;
+      }
+    }
+
+    const status = await invoke<SetappRuntimeStatus>("get_setapp_status");
+
+    return {
+      ...status,
+      source: "setapp",
+      purchase_type: status.purchase_type ?? null,
+      expiration_date: status.expiration_date ?? null,
+    };
+  }
+
   static async getCurrentLicense(): Promise<StoredLicense | null> {
     try {
       return await getStoreValue<StoredLicense>(LICENSE_KEY);
@@ -178,6 +224,7 @@ export class LicenseService {
   ): StoredLicense {
     return {
       uuid: serverLicense.uuid,
+      source: serverLicense.type === "trial" ? "trial" : "direct",
       type: serverLicense.type,
       license_key: licenseKey || serverLicense.license_key,
       expires_at: serverLicense.expires_at,
@@ -246,7 +293,9 @@ export class LicenseService {
    * @returns True if the license provides full access (active trial or paid license not expired), false for expired licenses
    */
   static isLicenseActive(license: StoredLicense): boolean {
-    console.log("license!!!", license);
+    if (license.source === "setapp") {
+      return license.setapp_status?.active ?? false;
+    }
 
     // Check if license is expired
     if (this.isLicenseExpired(license)) {
@@ -263,6 +312,10 @@ export class LicenseService {
    * @returns True if the license is expired, false otherwise
    */
   static isLicenseExpired(license: StoredLicense): boolean {
+    if (license.source === "setapp") {
+      return !(license.setapp_status?.active ?? false);
+    }
+
     if (license.expires_at === null) {
       return false;
     }
@@ -284,6 +337,13 @@ export class LicenseService {
    * @returns The license
    */
   static async checkLicense(): Promise<StoredLicense | null> {
+    if (IS_SETAPP_BUILD) {
+      const setappStatus = await this.getSetappStatus();
+      const setappLicense = createSetappLicenseFromStatus(setappStatus);
+      await setStoreValue(LICENSE_KEY, setappLicense);
+      return setappLicense;
+    }
+
     // Development override for testing different license types
     if (import.meta.env.DEV && import.meta.env.VITE_OVERRIDE_LICENSE) {
       const overrideType = import.meta.env.VITE_OVERRIDE_LICENSE as
@@ -312,6 +372,7 @@ export class LicenseService {
       // Create mock license based on override type
       const mockLicense: StoredLicense = {
         uuid: `dev-override-${overrideType}-${Date.now()}`,
+        source: isTrialLike ? "trial" : "direct",
         type: normalizedType,
         license_key: isTrialLike ? null : `dev-${normalizedType}-key`,
         expires_at: this.getMockExpirationDate(overrideType),

@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuthContext } from "@/features/auth/AuthProvider";
+import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
 import { expandPath } from "@/features/structureEditor/utils/folderUtils";
 import { useAutoUpdater } from "@/features/updater/useAutoUpdater";
 import { decrypt } from "@/utils/encryption";
@@ -39,6 +40,7 @@ const GeneralPreferences: React.FC = () => {
   const [showResetSettings, setShowResetSettings] = useState(false);
   const { handleUpdate, isUpdating } = useAutoUpdater();
   const { license } = useAuthContext();
+  const isSetappUser = shouldUseSetappEntitlement(license);
 
   const isUpdateAllowed = () => {
     if (!license || !license.updates_expires_at) {
@@ -195,7 +197,11 @@ const GeneralPreferences: React.FC = () => {
           <div className="space-y-1">
             <h4 className="text-sm font-semibold">Current Version</h4>
             <p className="text-sm text-muted-foreground">{currentVersion}</p>
-            {!isUpdateAllowed() && (
+            {isSetappUser ? (
+              <p className="text-sm text-muted-foreground">
+                Updates for this build are managed by Setapp.
+              </p>
+            ) : !isUpdateAllowed() && (
               <p className="text-sm text-destructive">
                 Your update subscription has expired. Please renew your license
                 to get updates.
@@ -204,10 +210,14 @@ const GeneralPreferences: React.FC = () => {
           </div>
           <Button
             onClick={handleUpdate}
-            disabled={isUpdating || !isUpdateAllowed()}
+            disabled={isSetappUser || isUpdating || !isUpdateAllowed()}
             className="w-[180px]"
           >
-            {isUpdating ? "Checking..." : "Check for Updates"}
+            {isSetappUser
+              ? "Managed by Setapp"
+              : isUpdating
+              ? "Checking..."
+              : "Check for Updates"}
           </Button>
         </div>
       </Card>

@@ -10,6 +10,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/features/auth/AuthProvider";
+import {
+  getLicenseEntitlements,
+  isSetappBuild,
+  shouldUseSetappEntitlement,
+} from "@/features/auth/setapp";
 import { appUrl, openLink } from "@/lib/utils";
 import { format } from "date-fns";
 import React, { useState } from "react";
@@ -56,6 +61,8 @@ const CheckIcon = () => (
 const AccountPreferences: React.FC = () => {
   const { license, isLoading, error, activateLicense, refreshLicense } =
     useAuthContext();
+  const isSetappUser = shouldUseSetappEntitlement(license);
+  const entitlements = getLicenseEntitlements(license);
   const [licenseKey, setLicenseKey] = useState("");
   const [isActivating, setIsActivating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -106,7 +113,7 @@ const AccountPreferences: React.FC = () => {
 
   return (
     <div className="">
-      {!license && (
+      {!license && !isSetappBuild() && (
         <div className="p-6">
           <h3 className="text-base font-semibold mb-6">Activate License</h3>
           <form onSubmit={handleActivateLicense} className="space-y-4">
@@ -130,22 +137,26 @@ const AccountPreferences: React.FC = () => {
         <>
           <Card className="p-6">
             <h3 className="text-base font-semibold mb-6">
-              License Information
+              {isSetappUser ? "Setapp Access" : "License Information"}
             </h3>
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-sm text-muted-foreground">
-                  License Type
+                  {isSetappUser ? "Access Type" : "License Type"}
                 </div>
                 <div className="text-sm font-medium capitalize">
                   <Badge
                     className={
-                      license.type === "trial"
+                      isSetappUser
+                        ? "bg-blue-600 text-white"
+                        : license.type === "trial"
                         ? "bg-yellow-500 text-white"
                         : "bg-green-600 text-white"
                     }
                   >
-                    {license.type}
+                    {isSetappUser
+                      ? license.purchase_type?.replace("_", " ") ?? "setapp"
+                      : license.type}
                   </Badge>
                 </div>
               </div>
@@ -162,13 +173,44 @@ const AccountPreferences: React.FC = () => {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="text-sm text-muted-foreground">Expires At</div>
+                <div className="text-sm text-muted-foreground">
+                  {isSetappUser ? "Access Status" : "Expires At"}
+                </div>
                 <div className="text-sm font-medium">
-                  {license.expires_at
+                  {isSetappUser
+                    ? entitlements.hasCoreAccess
+                      ? "Active"
+                      : "Inactive"
+                    : license.expires_at
                     ? formatDate(license.expires_at)
                     : "Never"}
                 </div>
               </div>
+
+              {isSetappUser && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Managed By
+                    </div>
+                    <div className="text-sm font-medium">Setapp</div>
+                  </div>
+                  {license.setapp_status?.expiration_date && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-sm text-muted-foreground">
+                        Access Ends
+                      </div>
+                      <div className="text-sm font-medium">
+                        {formatDate(license.setapp_status.expiration_date)}
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-sm text-muted-foreground">
+                    Updates and access are managed by Setapp. AI features remain
+                    unavailable in this build.
+                  </div>
+                </>
+              )}
 
               {import.meta.env.DEV && (
                 <div className="grid grid-cols-2 gap-4">
@@ -191,7 +233,7 @@ const AccountPreferences: React.FC = () => {
         </>
       )}
 
-      {(license?.type === "once" || license?.type === "yearly") && (
+      {!isSetappUser && (license?.type === "once" || license?.type === "yearly") && (
         <div className="flex justify-end py-6">
           <Button
             variant="outline"
@@ -202,7 +244,7 @@ const AccountPreferences: React.FC = () => {
         </div>
       )}
 
-      {license?.type === "trial" && (
+      {!isSetappUser && license?.type === "trial" && (
         <>
           <Card className="p-6 mt-6">
             <h3 className="">License Status</h3>

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "File Architect",
+  "identifier": "com.filearchitect.app-setapp",
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "infoPlist": "Info.setapp.plist",
+      "minimumSystemVersion": "11.5",
+      "files": {
+        "Resources/setappPublicKey.pem": "resources/setappPublicKey.pem",
+        "Resources/SetappFramework-Resources.bundle": ".setapp-sdk/SetappFramework-Resources.bundle"
+      }
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["filearchitect"]
+      }
+    }
+  }
+}

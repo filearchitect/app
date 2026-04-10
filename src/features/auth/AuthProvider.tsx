@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { LicenseError, LicenseValidationError } from "./errors";
+import { isSetappBuild } from "./setapp";
 import { LicenseService } from "./services";
 import { StoredLicense } from "./types";
 
@@ -68,6 +69,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     validateLicense();
+  }, [validateLicense]);
+
+  useEffect(() => {
+    if (!isSetappBuild()) {
+      return;
+    }
+
+    const refreshSetappState = () => {
+      void validateLicense();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSetappState();
+      }
+    };
+
+    window.addEventListener("focus", refreshSetappState);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", refreshSetappState);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [validateLicense]);
 
   const activateLicense = useCallback(async (licenseKey: string) => {
