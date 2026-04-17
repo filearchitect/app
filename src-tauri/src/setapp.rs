@@ -97,11 +97,6 @@ pub fn show_setapp_release_notes_if_needed() -> Result<(), String> {
     platform::show_release_notes_if_needed()
 }
 
-#[cfg(all(target_os = "macos", setapp_build))]
-pub fn report_usage() {
-    platform::report_usage();
-}
-
 #[cfg(all(target_os = "macos", setapp_build, not(setapp_local_test)))]
 mod platform {
     use super::SetappStatus;
@@ -113,7 +108,6 @@ mod platform {
         fn filearchitect_setapp_expiration_timestamp() -> i64;
         fn filearchitect_setapp_show_release_notes_if_needed() -> bool;
         fn filearchitect_setapp_show_release_notes() -> bool;
-        fn filearchitect_setapp_report_usage_event(usage_event: i32) -> bool;
     }
 
     pub fn get_status() -> SetappStatus {
@@ -166,10 +160,6 @@ mod platform {
             Err("Setapp release notes are unavailable".to_string())
         }
     }
-
-    pub fn report_usage() {
-        let _ = unsafe { filearchitect_setapp_report_usage_event(2) };
-    }
 }
 
 #[cfg(any(
@@ -210,9 +200,6 @@ mod platform {
     pub fn show_release_notes_if_needed() -> Result<(), String> {
         Err("Setapp release notes are unavailable for this build".to_string())
     }
-
-    #[cfg(all(target_os = "macos", setapp_build, setapp_local_test))]
-    pub fn report_usage() {}
 }
 
 #[cfg(test)]

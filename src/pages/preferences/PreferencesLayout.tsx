@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { useAuthContext } from "@/features/auth/AuthProvider";
+import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +13,8 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 const PreferencesLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { license } = useAuthContext();
+  const showAiPreferences = !shouldUseSetappEntitlement(license);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -23,7 +27,7 @@ const PreferencesLayout = () => {
   const getTitle = () => {
     if (isActive("/preferences/general")) return "General preferences";
     if (isActive("/preferences/account")) return "Account preferences";
-    if (isActive("/preferences/ai")) return "AI preferences";
+    if (showAiPreferences && isActive("/preferences/ai")) return "AI preferences";
     if (isActive("/preferences/help")) return "Help & support";
     return "Preferences";
   };
@@ -69,19 +73,21 @@ const PreferencesLayout = () => {
                   Account
                 </Link>
               </Button>
-              <Button
-                variant={isActive("/preferences/ai") ? "secondary" : "ghost"}
-                className="w-full text-left justify-start !p-0"
-                asChild
-              >
-                <Link
-                  className="flex items-center gap-2 px-4 py-2 justify-start w-full"
-                  to="/preferences/ai"
+              {showAiPreferences && (
+                <Button
+                  variant={isActive("/preferences/ai") ? "secondary" : "ghost"}
+                  className="w-full text-left justify-start !p-0"
+                  asChild
                 >
-                  <Cpu className="h-4 w-4" />
-                  AI
-                </Link>
-              </Button>
+                  <Link
+                    className="flex items-center gap-2 px-4 py-2 justify-start w-full"
+                    to="/preferences/ai"
+                  >
+                    <Cpu className="h-4 w-4" />
+                    AI
+                  </Link>
+                </Button>
+              )}
               <Button
                 variant={isActive("/preferences/help") ? "secondary" : "ghost"}
                 className="w-full text-left justify-start !p-0"

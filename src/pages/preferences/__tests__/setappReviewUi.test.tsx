@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const storeMocks = vi.hoisted(() => ({
@@ -6,6 +7,10 @@ const storeMocks = vi.hoisted(() => ({
   setStoreValue: vi.fn(),
   getStore: vi.fn(),
   clearStore: vi.fn(),
+}));
+
+const authMocks = vi.hoisted(() => ({
+  useAuthContext: vi.fn(),
 }));
 
 vi.mock("@/components/ui/dialog", () => ({
@@ -37,6 +42,10 @@ vi.mock("@/api/store", () => ({
   clearStore: storeMocks.clearStore,
 }));
 
+vi.mock("@/features/auth/AuthProvider", () => ({
+  useAuthContext: authMocks.useAuthContext,
+}));
+
 vi.mock("@tauri-apps/api/app", () => ({
   getVersion: vi.fn().mockResolvedValue("0.11.22"),
 }));
@@ -57,47 +66,55 @@ vi.mock("@/features/updater/useAutoUpdater", () => ({
   }),
 }));
 
-vi.mock("@/features/auth/AuthProvider", () => ({
-  useAuthContext: () => ({
-    license: {
-      uuid: "setapp-license",
-      source: "setapp",
-      type: "once",
-      license_key: null,
-      expires_at: null,
-      ai_expires_at: null,
-      updates_expires_at: null,
-      last_checked_at: "2026-04-01T00:00:00.000Z",
-      purchase_type: "single_app",
-      setapp_status: {
-        enabled: true,
-        available: true,
-        active: true,
-        source: "setapp",
-        purchase_type: "single_app",
-        expiration_date: null,
-      },
-    },
-    isLoading: false,
-    error: null,
-    activateLicense: vi.fn(),
-    refreshLicense: vi.fn(),
-  }),
-}));
+vi.mock("@/features/auth/setapp", async () => {
+  const actual = await vi.importActual<typeof import("@/features/auth/setapp")>(
+    "@/features/auth/setapp"
+  );
+
+  return {
+    ...actual,
+    isSetappBuild: () => true,
+  };
+});
 
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import GeneralPreferences from "../GeneralPreferences";
 import AccountPreferences from "../AccountPreferences";
+import PreferencesLayout from "../PreferencesLayout";
 
 describe("Setapp review-facing UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("VITE_IS_SETAPP", "true");
     storeMocks.getStoreValue.mockResolvedValue(false);
     storeMocks.setStoreValue.mockResolvedValue(undefined);
     storeMocks.clearStore.mockResolvedValue(undefined);
     storeMocks.getStore.mockResolvedValue({
       entries: vi.fn().mockResolvedValue([]),
+    });
+    authMocks.useAuthContext.mockReturnValue({
+      license: {
+        uuid: "setapp-license",
+        source: "setapp",
+        type: "once",
+        license_key: null,
+        expires_at: null,
+        ai_expires_at: null,
+        updates_expires_at: null,
+        last_checked_at: "2026-04-01T00:00:00.000Z",
+        purchase_type: "single_app",
+        setapp_status: {
+          enabled: true,
+          available: true,
+          active: true,
+          source: "setapp",
+          purchase_type: "single_app",
+          expiration_date: null,
+        },
+      },
+      isLoading: false,
+      error: null,
+      activateLicense: vi.fn(),
+      refreshLicense: vi.fn(),
     });
   });
 
@@ -117,10 +134,8 @@ describe("Setapp review-facing UI", () => {
     expect(screen.getByText("Setapp Access")).toBeInTheDocument();
     expect(screen.getAllByText("single app")).toHaveLength(1);
     expect(screen.getByText("Access Status")).toBeInTheDocument();
+    expect(screen.queryByText("Access Ends")).not.toBeInTheDocument();
     expect(screen.queryByText("Distribution")).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/updates and access are managed by setapp/i)
-    ).toBeInTheDocument();
     expect(
       screen.queryByText(/manage license/i)
     ).not.toBeInTheDocument();
@@ -135,5 +150,19 @@ describe("Setapp review-facing UI", () => {
     expect(
       screen.queryByText(/renew your license to get updates/i)
     ).not.toBeInTheDocument();
+  });
+
+  it("hides the AI preferences tab for Setapp users", () => {
+    render(
+      <MemoryRouter initialEntries={["/preferences/account"]}>
+        <Routes>
+          <Route path="/preferences/*" element={<PreferencesLayout />}>
+            <Route path="account" element={<div>Account content</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("link", { name: "AI" })).not.toBeInTheDocument();
   });
 });

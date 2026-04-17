@@ -13,11 +13,17 @@ Setapp builds are produced locally on a Mac, not in GitHub Actions. The hosted m
   - `APPLE_CERTIFICATE_PASSWORD`
   - `APPLE_CERTIFICATE`
 - A real Setapp public key at `src-tauri/resources/setappPublicKey.pem`
-- A local Setapp SDK checkout or extracted framework directory
+- Internet access on first run so the script can download the pinned Setapp framework release
 
-## Required SDK paths
+## Optional SDK overrides
 
-Export:
+By default, the script downloads and caches the pinned Setapp framework release under:
+
+```bash
+~/.cache/filearchitect/setapp-sdk/<version>/
+```
+
+If you want to use a specific local framework copy instead, export:
 
 ```bash
 export SETAPP_SDK_DIR="/absolute/path/to/Setapp.xcframework/macos-arm64_x86_64"
@@ -25,6 +31,12 @@ export SETAPP_RESOURCES_BUNDLE="/absolute/path/to/SetappFramework-Resources.bund
 ```
 
 `SETAPP_RESOURCES_BUNDLE` is optional if the bundle sits next to the SDK slice directory. The script will infer it from `SETAPP_SDK_DIR` in that case.
+
+You can also override the pinned release version:
+
+```bash
+export SETAPP_FRAMEWORK_VERSION="5.1.0"
+```
 
 ## Build command
 
@@ -38,18 +50,24 @@ The script:
 
 - loads `.env`
 - validates the Apple signing and notarization variables
+- verifies both `aarch64-apple-darwin` and `x86_64-apple-darwin` Rust targets are installed
+- downloads and caches the pinned Setapp framework release when local SDK paths are not provided
 - stages the Setapp SDK under `src-tauri/.setapp-sdk/`
-- builds the Setapp flavor with `src-tauri/tauri.setapp.conf.json`
-- notarizes and staples the final DMG artifact
-- writes distributable artifacts to `dist/setapp/`
+- builds the notarized Setapp `.app` flavor as a true `universal-apple-darwin` bundle with `src-tauri/tauri.setapp.conf.json`
+- packages a Setapp-compliant `.zip` containing:
+  - `File Architect.app`
+  - `File Architect.png`
+- writes the distributable archive to `dist/setapp/`
 
 ## Output artifacts
 
 After a successful build:
 
-- app bundle: `src-tauri/target/release/bundle/macos/File Architect.app`
+- app bundle: `src-tauri/target/universal-apple-darwin/release/bundle/macos/File Architect.app`
 - zip: `dist/setapp/filearchitect_setapp_<version>_universal.zip`
-- dmg, if Tauri produced one: `dist/setapp/filearchitect_setapp_<version>.dmg`
+- zip staging dir: `dist/setapp/staging/`
+
+The `.zip` is the file to upload to Setapp. The archive contains the `.app` bundle and the required 1024x1024 PNG icon side by side, matching Setapp's submission requirements.
 
 ## Notes
 

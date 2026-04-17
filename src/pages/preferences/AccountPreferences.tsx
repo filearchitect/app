@@ -195,20 +195,6 @@ const AccountPreferences: React.FC = () => {
                     </div>
                     <div className="text-sm font-medium">Setapp</div>
                   </div>
-                  {license.setapp_status?.expiration_date && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-sm text-muted-foreground">
-                        Access Ends
-                      </div>
-                      <div className="text-sm font-medium">
-                        {formatDate(license.setapp_status.expiration_date)}
-                      </div>
-                    </div>
-                  )}
-                  <div className="text-sm text-muted-foreground">
-                    Updates and access are managed by Setapp. AI features remain
-                    unavailable in this build.
-                  </div>
                 </>
               )}
 

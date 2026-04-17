@@ -1,6 +1,9 @@
 import { StructureEditorPage } from "@/features/structureEditor";
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { useAuthContext } from "@/features/auth/AuthProvider";
+import { isSetappBuild } from "@/features/auth/setapp";
+import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 // Lazy load preference pages to reduce initial bundle size
 const AccountPreferences = lazy(
@@ -26,6 +29,9 @@ const RouteLoading = () => (
 
 // This wrapper component includes the future flags configuration
 export function Router() {
+  const { license } = useAuthContext();
+  const setappBuild = isSetappBuild() || shouldUseSetappEntitlement(license);
+
   return (
     <Routes>
       <Route path="/" element={<StructureEditorPage />} />
@@ -55,9 +61,13 @@ export function Router() {
         <Route
           path="/preferences/ai"
           element={
-            <Suspense fallback={<RouteLoading />}>
-              <AIPreferences />
-            </Suspense>
+            setappBuild ? (
+              <Navigate to="/preferences/account" replace />
+            ) : (
+              <Suspense fallback={<RouteLoading />}>
+                <AIPreferences />
+              </Suspense>
+            )
           }
         />
         <Route

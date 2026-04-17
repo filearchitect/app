@@ -22,7 +22,7 @@ export const IconTooltipButton = React.forwardRef<
     <TooltipProvider delayDuration={100}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button ref={ref} {...buttonProps}>
+          <Button ref={ref} aria-label={label} {...buttonProps}>
             {icon}
           </Button>
         </TooltipTrigger>

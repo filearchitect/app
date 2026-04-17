@@ -664,12 +664,6 @@ fn main() {
                 let menu = Menu::with_items(handle, &[&app_menu, &edit_menu, &window_menu])?;
                 app.set_menu(menu)?;
             }
-
-            #[cfg(all(target_os = "macos", setapp_build))]
-            {
-                setapp::report_usage();
-            }
-            
             Ok(())
         })
         .on_menu_event(|app, event| {

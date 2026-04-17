@@ -73,14 +73,4 @@ extern "C" bool filearchitect_setapp_show_release_notes() {
     return true;
 }
 
-extern "C" bool filearchitect_setapp_report_usage_event(int usageEvent) {
-    STPManager *manager = sharedManager();
-    if (manager == nil) {
-        return false;
-    }
-
-    [manager reportUsageEvent:(STPUsageEvent)usageEvent];
-    return true;
-}
-
 #endif
