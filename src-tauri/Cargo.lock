@@ -873,7 +873,7 @@ dependencies = [
 
 [[package]]
 name = "filearchitect-app"
-version = "0.11.23"
+version = "0.11.25"
 dependencies = [
  "cc",
  "chrono",

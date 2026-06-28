@@ -140,26 +140,24 @@ const AccountPreferences: React.FC = () => {
               {isSetappUser ? "Setapp Access" : "License Information"}
             </h3>
             <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-sm text-muted-foreground">
-                  {isSetappUser ? "Access Type" : "License Type"}
+              {!isSetappUser && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    License Type
+                  </div>
+                  <div className="text-sm font-medium capitalize">
+                    <Badge
+                      className={
+                        license.type === "trial"
+                          ? "bg-yellow-500 text-white"
+                          : "bg-green-600 text-white"
+                      }
+                    >
+                      {license.type}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="text-sm font-medium capitalize">
-                  <Badge
-                    className={
-                      isSetappUser
-                        ? "bg-blue-600 text-white"
-                        : license.type === "trial"
-                        ? "bg-yellow-500 text-white"
-                        : "bg-green-600 text-white"
-                    }
-                  >
-                    {isSetappUser
-                      ? license.purchase_type?.replace("_", " ") ?? "setapp"
-                      : license.type}
-                  </Badge>
-                </div>
-              </div>
+              )}
 
               {license.license_key && (
                 <div className="grid grid-cols-2 gap-4">
@@ -174,7 +172,7 @@ const AccountPreferences: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-sm text-muted-foreground">
-                  {isSetappUser ? "Access Status" : "Expires At"}
+                  {isSetappUser ? "Status" : "Expires At"}
                 </div>
                 <div className="text-sm font-medium">
                   {isSetappUser

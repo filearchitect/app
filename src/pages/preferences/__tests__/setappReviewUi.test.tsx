@@ -132,8 +132,10 @@ describe("Setapp review-facing UI", () => {
     render(<AccountPreferences />);
 
     expect(screen.getByText("Setapp Access")).toBeInTheDocument();
-    expect(screen.getAllByText("single app")).toHaveLength(1);
-    expect(screen.getByText("Access Status")).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.queryByText("single app")).not.toBeInTheDocument();
+    expect(screen.queryByText("Access Type")).not.toBeInTheDocument();
     expect(screen.queryByText("Access Ends")).not.toBeInTheDocument();
     expect(screen.queryByText("Distribution")).not.toBeInTheDocument();
     expect(
