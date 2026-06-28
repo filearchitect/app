@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { documentDir, homeDir, join } from "@tauri-apps/api/path";
 import { exists, readTextFile } from "@tauri-apps/plugin-fs";
 import { LicenseError, LicenseValidationError, MachineIdError } from "./errors";
-import { createSetappLicenseFromStatus } from "./setapp";
+import { createAppStoreLicense, createSetappLicenseFromStatus } from "./setapp";
 import {
   ServerLicense,
   ServerMachineResponse,
@@ -26,6 +26,7 @@ const GRACE_PERIOD_MS =
 
 const IS_SETAPP_BUILD = import.meta.env.VITE_IS_SETAPP === "true";
 const IS_SETAPP_LOCAL_TEST = import.meta.env.VITE_SETAPP_LOCAL_TEST === "true";
+const IS_APPSTORE_BUILD = import.meta.env.VITE_IS_APPSTORE === "true";
 
 interface OverrideSettings {
   machineId?: string;
@@ -258,6 +259,10 @@ export class LicenseService {
    * @returns The updated license
    */
   static async validateLicense(licenseKey: string): Promise<StoredLicense> {
+    if (IS_APPSTORE_BUILD) {
+      return createAppStoreLicense();
+    }
+
     const validationResponse = await makeApiRequest<ServerLicense>(
       "/licenses/validation",
       {
@@ -297,6 +302,10 @@ export class LicenseService {
       return license.setapp_status?.active ?? false;
     }
 
+    if (license.source === "appstore") {
+      return true;
+    }
+
     // Check if license is expired
     if (this.isLicenseExpired(license)) {
       return false;
@@ -314,6 +323,10 @@ export class LicenseService {
   static isLicenseExpired(license: StoredLicense): boolean {
     if (license.source === "setapp") {
       return !(license.setapp_status?.active ?? false);
+    }
+
+    if (license.source === "appstore") {
+      return false;
     }
 
     if (license.expires_at === null) {
@@ -337,6 +350,12 @@ export class LicenseService {
    * @returns The license
    */
   static async checkLicense(): Promise<StoredLicense | null> {
+    if (IS_APPSTORE_BUILD) {
+      const appStoreLicense = createAppStoreLicense();
+      await setStoreValue(LICENSE_KEY, appStoreLicense);
+      return appStoreLicense;
+    }
+
     if (IS_SETAPP_BUILD) {
       const setappStatus = await this.getSetappStatus();
       const setappLicense = createSetappLicenseFromStatus(setappStatus);

@@ -1,15 +1,41 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createAppStoreLicense,
   createSetappLicense,
   createSetappLicenseFromStatus,
   getLicenseEntitlements,
   getLicenseSource,
+  isAppStoreLicense,
   isSetappLicense,
 } from "../setapp";
 import { StoredLicense } from "../types";
 
 describe("Setapp license helpers", () => {
+  it("creates a Mac App Store license with no direct-sale license key", () => {
+    const license = createAppStoreLicense("2026-04-01T00:00:00.000Z");
+
+    expect(license.source).toBe("appstore");
+    expect(license.type).toBe("once");
+    expect(license.license_key).toBeNull();
+    expect(license.expires_at).toBeNull();
+    expect(license.ai_expires_at).toBeNull();
+    expect(license.updates_expires_at).toBeNull();
+    expect(isAppStoreLicense(license)).toBe(true);
+  });
+
+  it("reports Mac App Store access as full core access without license management", () => {
+    const entitlements = getLicenseEntitlements(
+      createAppStoreLicense("2026-04-01T00:00:00.000Z")
+    );
+
+    expect(entitlements.source).toBe("appstore");
+    expect(entitlements.hasCoreAccess).toBe(true);
+    expect(entitlements.hasAiAccess).toBe(false);
+    expect(entitlements.canManageLicense).toBe(false);
+    expect(entitlements.isNonExpiringCoreAccess).toBe(true);
+  });
+
   it("creates a Setapp license with no direct-sale license key", () => {
     const license = createSetappLicense("2026-04-01T00:00:00.000Z");
 
@@ -153,6 +179,46 @@ describe("Setapp auth resolution", () => {
     expect(license?.source).toBe("setapp");
     expect(license?.setapp_status?.active).toBe(true);
     expect(invoke).toHaveBeenCalledWith("get_setapp_status");
+    expect(makeApiRequest).not.toHaveBeenCalled();
+    expect(getStoreValue).not.toHaveBeenCalled();
+    expect(setStoreValue).toHaveBeenCalledTimes(1);
+  });
+
+  it("bypasses licensing endpoints when running in Mac App Store mode", async () => {
+    vi.stubEnv("VITE_IS_APPSTORE", "true");
+
+    const makeApiRequest = vi.fn();
+    const getStoreValue = vi.fn().mockResolvedValue(null);
+    const setStoreValue = vi.fn().mockResolvedValue(undefined);
+    const invoke = vi.fn();
+
+    vi.doMock("@/api/http", () => ({
+      makeApiRequest,
+    }));
+    vi.doMock("@/api/store", () => ({
+      getStoreValue,
+      setStoreValue,
+    }));
+    vi.doMock("@tauri-apps/api/core", () => ({
+      invoke,
+    }));
+    vi.doMock("@tauri-apps/api/path", () => ({
+      documentDir: vi.fn(),
+      homeDir: vi.fn(),
+      join: vi.fn(),
+    }));
+    vi.doMock("@tauri-apps/plugin-fs", () => ({
+      exists: vi.fn(),
+      readTextFile: vi.fn(),
+    }));
+
+    const { LicenseService } = await import("../services");
+
+    const license = await LicenseService.checkLicense();
+
+    expect(license?.source).toBe("appstore");
+    expect(license?.type).toBe("once");
+    expect(invoke).not.toHaveBeenCalled();
     expect(makeApiRequest).not.toHaveBeenCalled();
     expect(getStoreValue).not.toHaveBeenCalled();
     expect(setStoreValue).toHaveBeenCalledTimes(1);

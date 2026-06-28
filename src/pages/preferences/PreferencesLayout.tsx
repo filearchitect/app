@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
+import { shouldUsePlatformEntitlement } from "@/features/auth/setapp";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ const PreferencesLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { license } = useAuthContext();
-  const showAiPreferences = !shouldUseSetappEntitlement(license);
+  const showAiPreferences = !shouldUsePlatformEntitlement(license);
 
   const isActive = (path: string) => {
     return location.pathname === path;

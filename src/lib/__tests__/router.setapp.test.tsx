@@ -7,6 +7,7 @@ const authMock = vi.hoisted(() => ({
 }));
 
 const setappMock = vi.hoisted(() => ({
+  isAppStoreBuild: vi.fn(),
   isSetappBuild: vi.fn(),
 }));
 
@@ -21,6 +22,7 @@ vi.mock("@/features/auth/setapp", async () => {
 
   return {
     ...actual,
+    isAppStoreBuild: setappMock.isAppStoreBuild,
     isSetappBuild: setappMock.isSetappBuild,
   };
 });
@@ -57,6 +59,7 @@ vi.mock("@/pages/preferences/HelpPreferences", () => ({
 describe("Setapp preferences routing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setappMock.isAppStoreBuild.mockReturnValue(false);
     setappMock.isSetappBuild.mockReturnValue(false);
   });
 
@@ -120,5 +123,34 @@ describe("Setapp preferences routing", () => {
     );
 
     expect(await screen.findByText("AI preferences page")).toBeInTheDocument();
+  });
+
+  it("redirects /preferences/ai to account in Mac App Store builds", async () => {
+    setappMock.isAppStoreBuild.mockReturnValue(true);
+    authMock.useAuthContext.mockReturnValue({
+      license: {
+        source: "appstore",
+        type: "once",
+        ai_expires_at: null,
+        expires_at: null,
+        updates_expires_at: null,
+        license_key: null,
+        uuid: "appstore",
+        last_checked_at: new Date().toISOString(),
+      },
+    });
+
+    const { Router } = await import("../router");
+
+    render(
+      <MemoryRouter initialEntries={["/preferences/ai"]}>
+        <Router />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByText("Account preferences page")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("AI preferences page")).not.toBeInTheDocument();
   });
 });

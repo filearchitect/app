@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useEffect } from "react";
-import { isSetappBuild } from "@/features/auth/setapp";
+import { isAppStoreBuild, isSetappBuild } from "@/features/auth/setapp";
 
 interface WelcomeDialogProps {
   open: boolean;
@@ -18,6 +18,7 @@ interface WelcomeDialogProps {
 
 export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
   const setappBuild = isSetappBuild();
+  const appStoreBuild = isAppStoreBuild();
 
   useEffect(() => {
     const checkFirstVisit = async () => {
@@ -68,6 +69,11 @@ export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
                       Setapp includes full core access for this build. Updates
                       and billing are managed by Setapp, and AI features are not
                       included in the Setapp version.
+                    </p>
+                  ) : appStoreBuild ? (
+                    <p>
+                      Your Mac App Store purchase includes full core access for
+                      this build. Updates are managed by the Mac App Store.
                     </p>
                   ) : (
                     <p>

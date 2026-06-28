@@ -7,7 +7,7 @@ export interface ServerMachineResponse {
   };
 }
 
-export type LicenseSource = "direct" | "trial" | "setapp";
+export type LicenseSource = "direct" | "trial" | "setapp" | "appstore";
 export type SetappPurchaseType = "membership" | "single_app";
 
 export interface SetappRuntimeStatus {

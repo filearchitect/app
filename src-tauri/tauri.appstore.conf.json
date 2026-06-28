@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "File Architect",
+  "identifier": "com.filearchitect.app-mas",
+  "bundle": {
+    "targets": ["app"],
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "minimumSystemVersion": "11.5",
+      "signingIdentity": null,
+      "entitlements": "entitlements.appstore.plist"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["filearchitect"]
+      }
+    }
+  }
+}

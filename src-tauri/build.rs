@@ -25,17 +25,23 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/setapp_bridge.mm");
     println!("cargo:rerun-if-env-changed=VITE_IS_SETAPP");
+    println!("cargo:rerun-if-env-changed=VITE_IS_APPSTORE");
     println!("cargo:rerun-if-env-changed=SETAPP_LOCAL_TEST");
     println!("cargo:rerun-if-env-changed=SETAPP_SDK_DIR");
     println!("cargo:rustc-check-cfg=cfg(setapp_build)");
     println!("cargo:rustc-check-cfg=cfg(setapp_local_test)");
+    println!("cargo:rustc-check-cfg=cfg(appstore_build)");
     println!("cargo:rustc-env=TAURI_BUNDLE_MACOS_INFO_PLIST_URL_SCHEMES=filearchitect");
 
     let is_setapp_build = std::env::var("VITE_IS_SETAPP").as_deref() == Ok("true");
+    let is_appstore_build = std::env::var("VITE_IS_APPSTORE").as_deref() == Ok("true");
     let is_setapp_local_test =
         std::env::var("SETAPP_LOCAL_TEST").as_deref() == Ok("true");
     if is_setapp_build {
         println!("cargo:rustc-cfg=setapp_build");
+    }
+    if is_appstore_build {
+        println!("cargo:rustc-cfg=appstore_build");
     }
     if is_setapp_local_test {
         println!("cargo:rustc-cfg=setapp_local_test");

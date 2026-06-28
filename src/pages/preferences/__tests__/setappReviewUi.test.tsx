@@ -73,11 +73,13 @@ vi.mock("@/features/auth/setapp", async () => {
 
   return {
     ...actual,
-    isSetappBuild: () => true,
+    isSetappBuild: vi.fn(() => true),
+    isAppStoreBuild: vi.fn(() => false),
   };
 });
 
 import { WelcomeDialog } from "@/components/WelcomeDialog";
+import * as distribution from "@/features/auth/setapp";
 import GeneralPreferences from "../GeneralPreferences";
 import AccountPreferences from "../AccountPreferences";
 import PreferencesLayout from "../PreferencesLayout";
@@ -85,6 +87,8 @@ import PreferencesLayout from "../PreferencesLayout";
 describe("Setapp review-facing UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(distribution.isSetappBuild).mockReturnValue(true);
+    vi.mocked(distribution.isAppStoreBuild).mockReturnValue(false);
     storeMocks.getStoreValue.mockResolvedValue(false);
     storeMocks.setStoreValue.mockResolvedValue(undefined);
     storeMocks.clearStore.mockResolvedValue(undefined);
@@ -141,6 +145,38 @@ describe("Setapp review-facing UI", () => {
     expect(
       screen.queryByText(/manage license/i)
     ).not.toBeInTheDocument();
+  });
+
+  it("shows Mac App Store access without direct license controls", () => {
+    vi.mocked(distribution.isSetappBuild).mockReturnValue(false);
+    vi.mocked(distribution.isAppStoreBuild).mockReturnValue(true);
+    authMocks.useAuthContext.mockReturnValue({
+      license: {
+        uuid: "appstore-license",
+        source: "appstore",
+        type: "once",
+        license_key: null,
+        expires_at: null,
+        ai_expires_at: null,
+        updates_expires_at: null,
+        last_checked_at: "2026-04-01T00:00:00.000Z",
+      },
+      isLoading: false,
+      error: null,
+      activateLicense: vi.fn(),
+      refreshLicense: vi.fn(),
+    });
+
+    render(<AccountPreferences />);
+
+    expect(screen.getByText("Mac App Store Access")).toBeInTheDocument();
+    expect(screen.getByText("Managed By")).toBeInTheDocument();
+    expect(screen.getByText("Mac App Store")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.queryByText("License Key")).not.toBeInTheDocument();
+    expect(screen.queryByText(/activate license/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/purchase license/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/manage license/i)).not.toBeInTheDocument();
   });
 
   it("hides direct-license updater renewal messaging for Setapp users", async () => {

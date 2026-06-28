@@ -1,5 +1,5 @@
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
+import { shouldUsePlatformEntitlement } from "@/features/auth/setapp";
 import { getVersion } from "@tauri-apps/api/app";
 import { fetch } from "@tauri-apps/plugin-http";
 import { platform } from "@tauri-apps/plugin-os";
@@ -114,7 +114,7 @@ export function useAutoUpdater() {
   );
 
   const checkForUpdates = async () => {
-    if (shouldUseSetappEntitlement(license)) {
+    if (shouldUsePlatformEntitlement(license)) {
       setLastUpdateError(null);
       return false;
     }
@@ -200,8 +200,8 @@ export function useAutoUpdater() {
   };
 
   const handleUpdate = useCallback(async () => {
-    if (shouldUseSetappEntitlement(license)) {
-      toast.info("Updates for the Setapp build are managed by Setapp.");
+    if (shouldUsePlatformEntitlement(license)) {
+      toast.info("Updates for this build are managed by its store.");
       return;
     }
 

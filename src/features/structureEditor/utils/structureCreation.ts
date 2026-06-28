@@ -2,7 +2,13 @@ import { getStoreValue } from "@/api/store";
 import type { FileNameReplacement } from "@filearchitect/core";
 import { getStructure } from "@filearchitect/core";
 import { invoke } from "@tauri-apps/api/core";
-import { desktopDir, documentDir, extname, join } from "@tauri-apps/api/path";
+import {
+  appCacheDir,
+  desktopDir,
+  documentDir,
+  extname,
+  join,
+} from "@tauri-apps/api/path";
 import { fetch } from "@tauri-apps/plugin-http";
 import fs from "./fs";
 
@@ -55,8 +61,14 @@ export interface CreateFoldersExecutionResult {
 }
 
 async function getBlankFilesDir(): Promise<string> {
-  const documentsDir = await documentDir();
-  const blankFilesDir = await join(documentsDir, "FileArchitect", "BlankFiles");
+  const baseDir =
+    import.meta.env.VITE_IS_APPSTORE === "true"
+      ? await appCacheDir()
+      : await documentDir();
+  const blankFilesDir =
+    import.meta.env.VITE_IS_APPSTORE === "true"
+      ? await join(baseDir, "BlankFiles")
+      : await join(baseDir, "FileArchitect", "BlankFiles");
   await fs.mkdir(blankFilesDir, { recursive: true });
   return blankFilesDir;
 }

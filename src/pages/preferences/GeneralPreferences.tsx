@@ -21,7 +21,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
+import {
+  shouldUseAppStoreEntitlement,
+  shouldUseSetappEntitlement,
+} from "@/features/auth/setapp";
 import { expandPath } from "@/features/structureEditor/utils/folderUtils";
 import { useAutoUpdater } from "@/features/updater/useAutoUpdater";
 import { decrypt } from "@/utils/encryption";
@@ -41,6 +44,8 @@ const GeneralPreferences: React.FC = () => {
   const { handleUpdate, isUpdating } = useAutoUpdater();
   const { license } = useAuthContext();
   const isSetappUser = shouldUseSetappEntitlement(license);
+  const isAppStoreUser = shouldUseAppStoreEntitlement(license);
+  const isStoreManaged = isSetappUser || isAppStoreUser;
 
   const isUpdateAllowed = () => {
     if (!license || !license.updates_expires_at) {
@@ -201,6 +206,10 @@ const GeneralPreferences: React.FC = () => {
               <p className="text-sm text-muted-foreground">
                 Updates for this build are managed by Setapp.
               </p>
+            ) : isAppStoreUser ? (
+              <p className="text-sm text-muted-foreground">
+                Updates for this build are managed by the Mac App Store.
+              </p>
             ) : !isUpdateAllowed() && (
               <p className="text-sm text-destructive">
                 Your update subscription has expired. Please renew your license
@@ -210,11 +219,13 @@ const GeneralPreferences: React.FC = () => {
           </div>
           <Button
             onClick={handleUpdate}
-            disabled={isSetappUser || isUpdating || !isUpdateAllowed()}
+            disabled={isStoreManaged || isUpdating || !isUpdateAllowed()}
             className="w-[180px]"
           >
             {isSetappUser
               ? "Managed by Setapp"
+              : isAppStoreUser
+              ? "Managed by App Store"
               : isUpdating
               ? "Checking..."
               : "Check for Updates"}

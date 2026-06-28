@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:build": "tauri build",
+    "tauri:build:appstore": "bash scripts/build_appstore_macos.sh",
     "tauri:build:windows": "tauri build --target x86_64-pc-windows-msvc",
     "test": "vitest run",
     "test:watch": "vitest",

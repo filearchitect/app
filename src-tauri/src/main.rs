@@ -411,9 +411,18 @@ async fn remove_path(path: &str, recursive: bool) -> Result<(), String> {
 // Template Management
 // -----------------
 fn get_templates_dir() -> Result<PathBuf, String> {
+    #[cfg(all(target_os = "macos", appstore_build))]
+    let mut path = dirs::data_dir()
+        .ok_or_else(|| "Could not find application support directory".to_string())?
+        .join("File Architect");
+
+    #[cfg(not(all(target_os = "macos", appstore_build)))]
     let mut path = dirs::document_dir()
         .ok_or_else(|| "Could not find documents directory".to_string())?;
+
+    #[cfg(not(all(target_os = "macos", appstore_build)))]
     path.push("FileArchitect");
+
     path.push("Templates");
     fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     Ok(path)
@@ -572,7 +581,7 @@ fn main() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_os::init());
 
-    #[cfg(not(all(target_os = "macos", setapp_build)))]
+    #[cfg(not(all(target_os = "macos", any(setapp_build, appstore_build))))]
     {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }

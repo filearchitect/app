@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/features/auth/AuthProvider";
 import {
   getLicenseEntitlements,
+  isAppStoreBuild,
   isSetappBuild,
+  shouldUseAppStoreEntitlement,
   shouldUseSetappEntitlement,
 } from "@/features/auth/setapp";
 import { appUrl, openLink } from "@/lib/utils";
@@ -62,6 +64,8 @@ const AccountPreferences: React.FC = () => {
   const { license, isLoading, error, activateLicense, refreshLicense } =
     useAuthContext();
   const isSetappUser = shouldUseSetappEntitlement(license);
+  const isAppStoreUser = shouldUseAppStoreEntitlement(license);
+  const isPlatformUser = isSetappUser || isAppStoreUser;
   const entitlements = getLicenseEntitlements(license);
   const [licenseKey, setLicenseKey] = useState("");
   const [isActivating, setIsActivating] = useState(false);
@@ -113,7 +117,7 @@ const AccountPreferences: React.FC = () => {
 
   return (
     <div className="">
-      {!license && !isSetappBuild() && (
+      {!license && !isSetappBuild() && !isAppStoreBuild() && (
         <div className="p-6">
           <h3 className="text-base font-semibold mb-6">Activate License</h3>
           <form onSubmit={handleActivateLicense} className="space-y-4">
@@ -137,10 +141,14 @@ const AccountPreferences: React.FC = () => {
         <>
           <Card className="p-6">
             <h3 className="text-base font-semibold mb-6">
-              {isSetappUser ? "Setapp Access" : "License Information"}
+              {isSetappUser
+                ? "Setapp Access"
+                : isAppStoreUser
+                ? "Mac App Store Access"
+                : "License Information"}
             </h3>
             <div className="space-y-5">
-              {!isSetappUser && (
+              {!isPlatformUser && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-sm text-muted-foreground">
                     License Type
@@ -172,10 +180,10 @@ const AccountPreferences: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-sm text-muted-foreground">
-                  {isSetappUser ? "Status" : "Expires At"}
+                  {isPlatformUser ? "Status" : "Expires At"}
                 </div>
                 <div className="text-sm font-medium">
-                  {isSetappUser
+                  {isPlatformUser
                     ? entitlements.hasCoreAccess
                       ? "Active"
                       : "Inactive"
@@ -185,13 +193,15 @@ const AccountPreferences: React.FC = () => {
                 </div>
               </div>
 
-              {isSetappUser && (
+              {isPlatformUser && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-sm text-muted-foreground">
                       Managed By
                     </div>
-                    <div className="text-sm font-medium">Setapp</div>
+                    <div className="text-sm font-medium">
+                      {isSetappUser ? "Setapp" : "Mac App Store"}
+                    </div>
                   </div>
                 </>
               )}
@@ -217,7 +227,8 @@ const AccountPreferences: React.FC = () => {
         </>
       )}
 
-      {!isSetappUser && (license?.type === "once" || license?.type === "yearly") && (
+      {!isPlatformUser &&
+        (license?.type === "once" || license?.type === "yearly") && (
         <div className="flex justify-end py-6">
           <Button
             variant="outline"
@@ -228,7 +239,7 @@ const AccountPreferences: React.FC = () => {
         </div>
       )}
 
-      {!isSetappUser && license?.type === "trial" && (
+      {!isPlatformUser && license?.type === "trial" && (
         <>
           <Card className="p-6 mt-6">
             <h3 className="">License Status</h3>

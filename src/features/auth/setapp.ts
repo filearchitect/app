@@ -9,10 +9,26 @@ export function isSetappBuild(): boolean {
   return import.meta.env.VITE_IS_SETAPP === "true";
 }
 
+export function isAppStoreBuild(): boolean {
+  return import.meta.env.VITE_IS_APPSTORE === "true";
+}
+
 export function shouldUseSetappEntitlement(
   license: StoredLicense | null | undefined
 ): boolean {
   return isSetappBuild() || isSetappLicense(license);
+}
+
+export function shouldUseAppStoreEntitlement(
+  license: StoredLicense | null | undefined
+): boolean {
+  return isAppStoreBuild() || isAppStoreLicense(license);
+}
+
+export function shouldUsePlatformEntitlement(
+  license: StoredLicense | null | undefined
+): boolean {
+  return shouldUseSetappEntitlement(license) || shouldUseAppStoreEntitlement(license);
 }
 
 function isActiveAt(date: string | null, now = new Date()): boolean {
@@ -41,6 +57,27 @@ export function isSetappLicense(
   license: StoredLicense | null | undefined
 ): boolean {
   return getLicenseSource(license) === "setapp";
+}
+
+export function isAppStoreLicense(
+  license: StoredLicense | null | undefined
+): boolean {
+  return getLicenseSource(license) === "appstore";
+}
+
+export function createAppStoreLicense(
+  lastCheckedAt = new Date().toISOString()
+): StoredLicense {
+  return {
+    uuid: "appstore-license",
+    source: "appstore",
+    type: "once",
+    license_key: null,
+    expires_at: null,
+    ai_expires_at: null,
+    updates_expires_at: null,
+    last_checked_at: lastCheckedAt,
+  };
 }
 
 export function createSetappLicense(
@@ -110,6 +147,16 @@ export function getLicenseEntitlements(
       hasAiAccess: false,
       canManageLicense: false,
       isNonExpiringCoreAccess: isActive,
+    };
+  }
+
+  if (source === "appstore") {
+    return {
+      source,
+      hasCoreAccess: true,
+      hasAiAccess: false,
+      canManageLicense: false,
+      isNonExpiringCoreAccess: true,
     };
   }
 

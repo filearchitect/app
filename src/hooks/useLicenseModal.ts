@@ -1,4 +1,4 @@
-import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
+import { shouldUsePlatformEntitlement } from "@/features/auth/setapp";
 import { LicenseService } from "@/features/auth/services";
 import { StoredLicense } from "@/features/auth/types";
 import { useEffect, useState } from "react";
@@ -17,7 +17,7 @@ export function useLicenseModal({
   useEffect(() => {
     // Only update the modal state after initialization and when we have a definitive license state
     if (isInitialized && license) {
-      if (shouldUseSetappEntitlement(license)) {
+      if (shouldUsePlatformEntitlement(license)) {
         setShowLicenseModal(false);
         return;
       }
