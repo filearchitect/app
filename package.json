@@ -10,6 +10,8 @@
     "tauri": "tauri",
     "tauri:build": "tauri build",
     "tauri:build:appstore": "bash scripts/build_appstore_macos.sh",
+    "tauri:validate:appstore": "bash scripts/upload_appstore_macos.sh validate",
+    "tauri:upload:appstore": "bash scripts/upload_appstore_macos.sh upload",
     "tauri:build:windows": "tauri build --target x86_64-pc-windows-msvc",
     "test": "vitest run",
     "test:watch": "vitest",
