@@ -47,6 +47,15 @@ require_codesign_identity() {
   fi
 }
 
+require_installer_identity() {
+  local identity="$1"
+  if ! security find-identity -v | grep -Fq "$identity"; then
+    echo "Missing installer identity in keychain: $identity"
+    echo "Install the Mac Installer Distribution certificate from Apple Developer, then try again."
+    exit 1
+  fi
+}
+
 require_env APPSTORE_APP_SIGNING_IDENTITY
 require_env APPSTORE_INSTALLER_SIGNING_IDENTITY
 
@@ -54,7 +63,7 @@ APPSTORE_APP_SIGNING_IDENTITY="$(trim "${APPSTORE_APP_SIGNING_IDENTITY}")"
 APPSTORE_INSTALLER_SIGNING_IDENTITY="$(trim "${APPSTORE_INSTALLER_SIGNING_IDENTITY}")"
 
 require_codesign_identity "$APPSTORE_APP_SIGNING_IDENTITY"
-require_codesign_identity "$APPSTORE_INSTALLER_SIGNING_IDENTITY"
+require_installer_identity "$APPSTORE_INSTALLER_SIGNING_IDENTITY"
 
 export APP_ENV=production
 export NODE_ENV=production
@@ -63,6 +72,15 @@ export VITE_APP_URL='https://filearchitect.com'
 export VITE_API_URL='https://filearchitect.com/api/v1'
 export VITE_IS_APPSTORE='true'
 export APPLE_SIGNING_IDENTITY="$APPSTORE_APP_SIGNING_IDENTITY"
+
+# App Store Connect processes submitted builds. Avoid Tauri's direct-distribution
+# notarization path if .env contains stale Apple notarization credentials.
+unset APPLE_ID
+unset APPLE_PASSWORD
+unset APPLE_TEAM_ID
+unset APPLE_API_KEY
+unset APPLE_API_ISSUER
+unset APPLE_API_KEY_PATH
 
 mkdir -p "$(dirname "$GENERATED_CONFIG")"
 node - "$ROOT_DIR/src-tauri/tauri.appstore.conf.json" "$GENERATED_CONFIG" "$APPSTORE_APP_SIGNING_IDENTITY" "$ROOT_DIR/src-tauri/entitlements.appstore.plist" <<'NODE'
