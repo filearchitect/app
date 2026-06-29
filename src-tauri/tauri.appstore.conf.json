@@ -6,6 +6,7 @@
     "targets": ["app"],
     "createUpdaterArtifacts": false,
     "macOS": {
+      "infoPlist": "Info.appstore.plist",
       "minimumSystemVersion": "11.5",
       "signingIdentity": null,
       "entitlements": "entitlements.appstore.plist"
