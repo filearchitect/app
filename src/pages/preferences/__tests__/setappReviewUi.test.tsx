@@ -190,6 +190,39 @@ describe("Setapp review-facing UI", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows Mac App Store update management without a disabled updater button", async () => {
+    vi.mocked(distribution.isSetappBuild).mockReturnValue(false);
+    vi.mocked(distribution.isAppStoreBuild).mockReturnValue(true);
+    authMocks.useAuthContext.mockReturnValue({
+      license: {
+        uuid: "appstore-license",
+        source: "appstore",
+        type: "once",
+        license_key: null,
+        expires_at: null,
+        ai_expires_at: null,
+        updates_expires_at: null,
+        last_checked_at: "2026-04-01T00:00:00.000Z",
+      },
+      isLoading: false,
+      error: null,
+      activateLicense: vi.fn(),
+      refreshLicense: vi.fn(),
+    });
+
+    render(<GeneralPreferences />);
+
+    expect(
+      await screen.findByText(/updates for this build are managed by the mac app store/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /managed by app store/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /check for updates/i })
+    ).not.toBeInTheDocument();
+  });
+
   it("hides the AI preferences tab for Setapp users", () => {
     render(
       <MemoryRouter initialEntries={["/preferences/account"]}>

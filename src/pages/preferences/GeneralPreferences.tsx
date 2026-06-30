@@ -217,19 +217,15 @@ const GeneralPreferences: React.FC = () => {
               </p>
             )}
           </div>
-          <Button
-            onClick={handleUpdate}
-            disabled={isStoreManaged || isUpdating || !isUpdateAllowed()}
-            className="w-[180px]"
-          >
-            {isSetappUser
-              ? "Managed by Setapp"
-              : isAppStoreUser
-              ? "Managed by App Store"
-              : isUpdating
-              ? "Checking..."
-              : "Check for Updates"}
-          </Button>
+          {!isStoreManaged && (
+            <Button
+              onClick={handleUpdate}
+              disabled={isUpdating || !isUpdateAllowed()}
+              className="w-[180px]"
+            >
+              {isUpdating ? "Checking..." : "Check for Updates"}
+            </Button>
+          )}
         </div>
       </Card>
 
