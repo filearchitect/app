@@ -7,6 +7,8 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
 BUILD_TARGET="universal-apple-darwin"
 APP_BUNDLE_DIR="$ROOT_DIR/src-tauri/target/$BUILD_TARGET/release/bundle/macos/File Architect.app"
+APP_INFO_PLIST="$APP_BUNDLE_DIR/Contents/Info.plist"
+APP_EXECUTABLE="$APP_BUNDLE_DIR/Contents/MacOS/filearchitect-app"
 ARTIFACTS_DIR="$ROOT_DIR/dist/appstore"
 PKG_PATH="$ARTIFACTS_DIR/File Architect.pkg"
 GENERATED_CONFIG="$ROOT_DIR/src-tauri/target/tauri.appstore.generated.conf.json"
@@ -112,6 +114,29 @@ pnpm tauri build \
 if [[ ! -d "$APP_BUNDLE_DIR" ]]; then
   echo "Missing App Store app bundle at $APP_BUNDLE_DIR"
   exit 1
+fi
+
+if [[ -n "${APPSTORE_BUILD_NUMBER:-}" ]]; then
+  APPSTORE_BUILD_NUMBER="$(trim "${APPSTORE_BUILD_NUMBER}")"
+  if [[ -z "$APPSTORE_BUILD_NUMBER" ]]; then
+    echo "APPSTORE_BUILD_NUMBER is set but empty after trimming"
+    exit 1
+  fi
+
+  echo "Setting App Store build number to $APPSTORE_BUILD_NUMBER..."
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APPSTORE_BUILD_NUMBER" "$APP_INFO_PLIST"
+
+  echo "Re-signing App Store app after build-number update..."
+  codesign \
+    --force \
+    --sign "$APPSTORE_APP_SIGNING_IDENTITY" \
+    --entitlements "$ROOT_DIR/src-tauri/entitlements.appstore.plist" \
+    "$APP_EXECUTABLE"
+  codesign \
+    --force \
+    --sign "$APPSTORE_APP_SIGNING_IDENTITY" \
+    --entitlements "$ROOT_DIR/src-tauri/entitlements.appstore.plist" \
+    "$APP_BUNDLE_DIR"
 fi
 
 mkdir -p "$ARTIFACTS_DIR"
