@@ -15,6 +15,16 @@ const authMocks = vi.hoisted(() => ({
   } as StoredLicense,
 }));
 
+const editorMocks = vi.hoisted(() => ({
+  baseDir: "/Users/test/Desktop",
+  setBaseDir: vi.fn(),
+  handleBrowse: vi.fn(),
+  replacements: [
+    { search: "", replace: "", replaceInFiles: true, replaceInFolders: true },
+  ],
+  setReplacements: vi.fn(),
+}));
+
 vi.mock("@/features/auth/AuthProvider", () => ({
   useAuthContext: () => ({
     license: authMocks.license,
@@ -28,13 +38,7 @@ vi.mock("@/features/structures/StructureContext", () => ({
 }));
 
 vi.mock("../context/StructureEditorContext", () => ({
-  useStructureEditor: () => ({
-    baseDir: "/Users/test/Desktop",
-    setBaseDir: vi.fn(),
-    handleBrowse: vi.fn(),
-    replacements: [{ search: "", replace: "", replaceInFiles: true, replaceInFolders: true }],
-    setReplacements: vi.fn(),
-  }),
+  useStructureEditor: () => editorMocks,
 }));
 
 import { StructureCreatorSettings } from "../components/StructureCreatorSettings";
@@ -42,6 +46,8 @@ import { StructureCreatorSettings } from "../components/StructureCreatorSettings
 describe("StructureCreatorSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    editorMocks.baseDir = "/Users/test/Desktop";
     authMocks.license = {
       uuid: "direct-license",
       source: "direct",
@@ -87,6 +93,21 @@ describe("StructureCreatorSettings", () => {
 
     expect(
       screen.queryByRole("button", { name: "Generate structure with AI" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the real Desktop path for a sandbox-mapped Mac App Store desktop", () => {
+    vi.stubEnv("VITE_IS_APPSTORE", "true");
+    editorMocks.baseDir =
+      "/Users/test/Library/Containers/com.filearchitect.app-mas/Data/Desktop";
+
+    render(<StructureCreatorSettings onAiGenerate={vi.fn()} />);
+
+    expect(screen.getByDisplayValue("/Users/test/Desktop")).toBeInTheDocument();
+    expect(
+      screen.queryByDisplayValue(
+        "/Users/test/Library/Containers/com.filearchitect.app-mas/Data/Desktop"
+      )
     ).not.toBeInTheDocument();
   });
 });

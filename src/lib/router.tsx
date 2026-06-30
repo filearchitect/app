@@ -4,6 +4,7 @@ import { useAuthContext } from "@/features/auth/AuthProvider";
 import {
   isAppStoreBuild,
   isSetappBuild,
+  shouldUseAppStoreEntitlement,
   shouldUsePlatformEntitlement,
 } from "@/features/auth/setapp";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -35,6 +36,10 @@ export function Router() {
   const { license } = useAuthContext();
   const platformBuild =
     isSetappBuild() || isAppStoreBuild() || shouldUsePlatformEntitlement(license);
+  const appStoreBuild =
+    isAppStoreBuild() ||
+    license?.source === "appstore" ||
+    shouldUseAppStoreEntitlement(license);
 
   return (
     <Routes>
@@ -57,16 +62,23 @@ export function Router() {
         <Route
           path="/preferences/account"
           element={
-            <Suspense fallback={<RouteLoading />}>
-              <AccountPreferences />
-            </Suspense>
+            appStoreBuild ? (
+              <Navigate to="/preferences/general" replace />
+            ) : (
+              <Suspense fallback={<RouteLoading />}>
+                <AccountPreferences />
+              </Suspense>
+            )
           }
         />
         <Route
           path="/preferences/ai"
           element={
             platformBuild ? (
-              <Navigate to="/preferences/account" replace />
+              <Navigate
+                to={appStoreBuild ? "/preferences/general" : "/preferences/account"}
+                replace
+              />
             ) : (
               <Suspense fallback={<RouteLoading />}>
                 <AIPreferences />

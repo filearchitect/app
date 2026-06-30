@@ -1,6 +1,6 @@
 import { useAuthContext } from "@/features/auth/AuthProvider";
 import { useStructures } from "@/features/structures/StructureContext";
-import { handleBrowseDirectory } from "../utils/folderUtils";
+import { handleBrowseDirectory, normalizeDisplayPath } from "../utils/folderUtils";
 import type {
   CreateFoldersExecutionResult,
 } from "@/lib/filearchitect";
@@ -79,17 +79,18 @@ export const StructureEditorProvider: React.FC<{
   const isStructureMode = Boolean(activeStructure);
   const baseDir =
     isStructureMode && structureDestinationPath
-      ? structureDestinationPath
+      ? normalizeDisplayPath(structureDestinationPath)
       : defaultBaseDir;
 
   const setBaseDir = React.useCallback(
     (value: string) => {
+      const normalizedValue = normalizeDisplayPath(value);
       if (isStructureMode) {
         // When editing a structure, update the structure's destination path
-        setStructureDestinationPath(value);
+        setStructureDestinationPath(normalizedValue);
       } else {
         // Otherwise, update the default base dir
-        setDefaultBaseDir(value);
+        setDefaultBaseDir(normalizedValue);
       }
     },
     [isStructureMode, setStructureDestinationPath, setDefaultBaseDir]

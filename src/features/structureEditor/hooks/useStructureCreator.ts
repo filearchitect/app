@@ -12,7 +12,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { UseStructureCreatorOptions } from "../types";
-import { getInitialBaseDir, handleBrowseDirectory } from "../utils/folderUtils";
+import {
+  getInitialBaseDir,
+  handleBrowseDirectory,
+  normalizeDisplayPath,
+} from "../utils/folderUtils";
 import { openFolder } from "../utils/structureCreation";
 
 export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
@@ -30,7 +34,7 @@ export function useStructureCreator(options: UseStructureCreatorOptions = {}) {
         const initialBaseDir = await getInitialBaseDir();
         const storedBaseDir = await getStoreValue<string>("defaultPath");
         const storedAutoOpen = await getStoreValue<boolean>("autoOpenFolder");
-        setBaseDir(storedBaseDir || initialBaseDir);
+        setBaseDir(normalizeDisplayPath(storedBaseDir || initialBaseDir));
         setAutoOpenFolder(storedAutoOpen ?? false);
 
         return () => {};

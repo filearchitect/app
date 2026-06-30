@@ -1,6 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import { shouldUsePlatformEntitlement } from "@/features/auth/setapp";
+import {
+  isAppStoreBuild,
+  shouldUseAppStoreEntitlement,
+  shouldUsePlatformEntitlement,
+} from "@/features/auth/setapp";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +19,11 @@ const PreferencesLayout = () => {
   const navigate = useNavigate();
   const { license } = useAuthContext();
   const showAiPreferences = !shouldUsePlatformEntitlement(license);
+  const isAppStoreUser =
+    isAppStoreBuild() ||
+    license?.source === "appstore" ||
+    shouldUseAppStoreEntitlement(license);
+  const showAccountPreferences = !isAppStoreUser;
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -26,7 +35,8 @@ const PreferencesLayout = () => {
 
   const getTitle = () => {
     if (isActive("/preferences/general")) return "General preferences";
-    if (isActive("/preferences/account")) return "Account preferences";
+    if (showAccountPreferences && isActive("/preferences/account"))
+      return "Account preferences";
     if (showAiPreferences && isActive("/preferences/ai")) return "AI preferences";
     if (isActive("/preferences/help")) return "Help & support";
     return "Preferences";
@@ -58,21 +68,23 @@ const PreferencesLayout = () => {
                   General
                 </Link>
               </Button>
-              <Button
-                variant={
-                  isActive("/preferences/account") ? "secondary" : "ghost"
-                }
-                className="w-full text-left justify-start !p-0"
-                asChild
-              >
-                <Link
-                  className="flex items-center gap-2 px-4 py-2 justify-start w-full"
-                  to="/preferences/account"
+              {showAccountPreferences && (
+                <Button
+                  variant={
+                    isActive("/preferences/account") ? "secondary" : "ghost"
+                  }
+                  className="w-full text-left justify-start !p-0"
+                  asChild
                 >
-                  <User className="h-4 w-4" />
-                  Account
-                </Link>
-              </Button>
+                  <Link
+                    className="flex items-center gap-2 px-4 py-2 justify-start w-full"
+                    to="/preferences/account"
+                  >
+                    <User className="h-4 w-4" />
+                    Account
+                  </Link>
+                </Button>
+              )}
               {showAiPreferences && (
                 <Button
                   variant={isActive("/preferences/ai") ? "secondary" : "ghost"}

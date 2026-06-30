@@ -11,6 +11,7 @@ import { Minus, Plus, Settings, Sparkles } from "lucide-react";
 import { FC, useCallback, useEffect, useRef, useState } from "react";
 import { useStructureEditor } from "../context/StructureEditorContext";
 import { Replacement } from "../types";
+import { normalizeDisplayPath } from "../utils/folderUtils";
 
 interface StructureCreatorSettingsProps {
   onAiGenerate?: () => void;
@@ -22,6 +23,7 @@ export const StructureCreatorSettings: FC<StructureCreatorSettingsProps> = ({
   const { license } = useAuthContext();
   const { baseDir, setBaseDir, handleBrowse, replacements, setReplacements } =
     useStructureEditor();
+  const displayBaseDir = normalizeDisplayPath(baseDir);
   const { activeStructure } = useStructures();
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [localReplacements, setLocalReplacements] =
@@ -120,7 +122,7 @@ export const StructureCreatorSettings: FC<StructureCreatorSettingsProps> = ({
             <div className="relative flex-grow">
               <Input
                 id="baseDir"
-                value={baseDir}
+                value={displayBaseDir}
                 onChange={(e) => setBaseDir(e.target.value)}
                 onClick={handleBrowse}
                 placeholder="Enter base directory"

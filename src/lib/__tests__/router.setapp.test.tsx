@@ -125,7 +125,7 @@ describe("Setapp preferences routing", () => {
     expect(await screen.findByText("AI preferences page")).toBeInTheDocument();
   });
 
-  it("redirects /preferences/ai to account in Mac App Store builds", async () => {
+  it("redirects /preferences/ai to general in Mac App Store builds", async () => {
     setappMock.isAppStoreBuild.mockReturnValue(true);
     authMock.useAuthContext.mockReturnValue({
       license: {
@@ -149,7 +149,7 @@ describe("Setapp preferences routing", () => {
     );
 
     expect(
-      await screen.findByText("Account preferences page")
+      await screen.findByText("General preferences page")
     ).toBeInTheDocument();
     expect(screen.queryByText("AI preferences page")).not.toBeInTheDocument();
   });

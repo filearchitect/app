@@ -40,6 +40,7 @@ vi.mock("../hooks/useStructure", () => ({
 
 vi.mock("../utils/folderUtils", () => ({
   handleBrowseDirectory: mockHandleBrowseDirectory,
+  normalizeDisplayPath: (path: string) => path,
 }));
 
 import {

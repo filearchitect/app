@@ -12,9 +12,17 @@ export const expandPath = async (path: string): Promise<string> => {
   }
 };
 
+export const normalizeDisplayPath = (path: string): string => {
+  return path.replace(
+    /^\/Users\/([^/]+)\/Library\/Containers\/com\.filearchitect\.app-mas\/Data\/Desktop(\/.*)?$/,
+    (_match, username: string, suffix: string = "") =>
+      `/Users/${username}/Desktop${suffix}`
+  );
+};
+
 export const getInitialBaseDir = async (): Promise<string> => {
   try {
-    return await getDesktopDir();
+    return normalizeDisplayPath(await getDesktopDir());
   } catch (error) {
     console.error("Error getting desktop directory:", error);
     return "";

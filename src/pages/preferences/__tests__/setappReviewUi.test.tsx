@@ -203,4 +203,40 @@ describe("Setapp review-facing UI", () => {
 
     expect(screen.queryByRole("link", { name: "AI" })).not.toBeInTheDocument();
   });
+
+  it("hides account preferences for Mac App Store users", () => {
+    vi.mocked(distribution.isSetappBuild).mockReturnValue(false);
+    vi.mocked(distribution.isAppStoreBuild).mockReturnValue(true);
+    authMocks.useAuthContext.mockReturnValue({
+      license: {
+        uuid: "appstore-license",
+        source: "appstore",
+        type: "once",
+        license_key: null,
+        expires_at: null,
+        ai_expires_at: null,
+        updates_expires_at: null,
+        last_checked_at: "2026-04-01T00:00:00.000Z",
+      },
+      isLoading: false,
+      error: null,
+      activateLicense: vi.fn(),
+      refreshLicense: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/preferences/general"]}>
+        <Routes>
+          <Route path="/preferences/*" element={<PreferencesLayout />}>
+            <Route path="general" element={<div>General content</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(
+      screen.queryByRole("link", { name: "Account" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "AI" })).not.toBeInTheDocument();
+  });
 });
