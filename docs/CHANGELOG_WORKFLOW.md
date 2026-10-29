@@ -31,14 +31,9 @@ Examples:
 5. Use those bullets as GitHub release notes.
 
 ## Tag and publish checklist
-Use this exact sequence to avoid CI failures in `Release (Tag)`:
-1. Sync versions first: `node scripts/version-sync.mjs <x.y.z>`.
-2. Verify version alignment: `node scripts/version-check.mjs <x.y.z>`.
-3. Commit version updates (`package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`).
-4. Create a strict semver tag only: `git tag -a v<x.y.z> -m "Release v<x.y.z>"`.
-5. Push commit and tag: `git push origin main && git push origin v<x.y.z>`.
+Follow [direct-release.md](direct-release.md) for the full release gates. Sync versions with `node scripts/version-sync.mjs <x.y.z>`, including `Cargo.lock`; commit and merge the version bump to public `filearchitect/app/main`; then run `./scripts/tag-release.sh <x.y.z>` from a clean `main`. Pushing the tag creates a draft release. Publish it only after both platform artifacts pass verification.
 
 ## Preventing tag/version mismatch failures
 - Do not use suffix tags for production releases (for example `v0.11.21-fix`). The release workflow validates that tag version exactly matches app version.
-- Prefer `./scripts/tag-release.sh <x.y.z>` for release tagging. It syncs versions, validates them, and creates a matching tag.
+- Prefer `./scripts/tag-release.sh <x.y.z>` for release tagging. It validates the already committed versions and creates a matching tag on public `main`.
 - If a bad tag is pushed, cut a new semver release tag after version sync instead of retrying the same mismatched tag.

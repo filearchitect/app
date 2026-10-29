@@ -10,6 +10,7 @@ const expectedVersion = expectedInput
 const packageJsonPath = "package.json";
 const tauriConfigPath = "src-tauri/tauri.conf.json";
 const cargoPath = "src-tauri/Cargo.toml";
+const cargoLockPath = "src-tauri/Cargo.lock";
 
 const packageVersion = JSON.parse(
   fs.readFileSync(packageJsonPath, "utf8")
@@ -19,10 +20,14 @@ const cargoVersionMatch = fs
   .readFileSync(cargoPath, "utf8")
   .match(/^version = "(.*)"$/m);
 const cargoVersion = cargoVersionMatch ? cargoVersionMatch[1] : null;
+const cargoLockVersion = fs
+  .readFileSync(cargoLockPath, "utf8")
+  .match(/\[\[package\]\]\nname = "filearchitect-app"\nversion = "([^"]+)"/)?.[1] ?? null;
 
 const versions = {
   packageJson: packageVersion,
   cargoToml: cargoVersion,
+  cargoLock: cargoLockVersion,
   tauriConfig: tauriVersion,
 };
 
@@ -32,6 +37,7 @@ if (uniqueVersions.size !== 1) {
   console.error("Version mismatch detected:");
   console.error(`  package.json: ${versions.packageJson}`);
   console.error(`  src-tauri/Cargo.toml: ${versions.cargoToml}`);
+  console.error(`  src-tauri/Cargo.lock: ${versions.cargoLock}`);
   console.error(`  src-tauri/tauri.conf.json: ${versions.tauriConfig}`);
   process.exit(1);
 }

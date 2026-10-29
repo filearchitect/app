@@ -343,6 +343,16 @@ jobs:
           unset APPLE_CERTIFICATE_PASSWORD
           pnpm tauri build --config src-tauri/tauri.production.conf.json --target "${{ matrix.rust_target }}"
 
+      - name: Verify signed and notarized macOS app
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/File Architect.app"
+          test -d "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          spctl --assess --type execute --verbose=4 "$APP"
+          xcrun stapler validate "$APP"
+
       - name: Upload release assets (macOS binaries)
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
@@ -461,7 +471,7 @@ jobs:
               }
             }' > latest.json
 
-          cat latest.json
+          jq -e --arg version "$VERSION" '.version == $version and (.platforms["darwin-aarch64"].signature | length > 0) and (.platforms["darwin-x86_64"].signature | length > 0)' latest.json >/dev/null
 
       - name: Upload release assets (macOS manifest)
         shell: bash
@@ -536,51 +546,8 @@ jobs:
         run: |
           set -euo pipefail
           EXE_FILE="src-tauri/target/x86_64-pc-windows-msvc/release/filearchitect-app.exe"
-          gh release upload "${GITHUB_REF_NAME}" "$EXE_FILE" --clobber
-
-  publish-release:
-    name: Publish GitHub release
-    if: >-
-      ${{
-        always() &&
-        startsWith(github.ref, 'refs/tags/v') &&
-        needs.create-release.result == 'success' &&
-        (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped') &&
-        (needs.build-macos-manifest.result == 'success' || needs.build-macos-manifest.result == 'skipped') &&
-        (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
-      }}
-    needs:
-      - create-release
-      - build-macos
-      - build-macos-manifest
-      - build-windows
-    runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build release notes from changelog
-        shell: bash
-        run: |
-          set -euo pipefail
+          test -s "$EXE_FILE"
           VERSION="${GITHUB_REF_NAME#v}"
-          awk -v ver="$VERSION" '
-            $0 == "## " ver { in_section=1; next }
-            in_section && /^## / { exit }
-            in_section { print }
-          ' CHANGELOG.md | sed '/^[[:space:]]*$/N;/^\n$/D' > RELEASE_NOTES.md
-
-          if [[ ! -s RELEASE_NOTES.md ]]; then
-            printf 'See CHANGELOG.md for details.\n' > RELEASE_NOTES.md
-          fi
-
-      - name: Publish release
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh release edit "${GITHUB_REF_NAME}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --notes-file RELEASE_NOTES.md \
-            --draft=false
+          ASSET="filearchitect_${VERSION}_windows-x86_64.exe"
+          cp "$EXE_FILE" "$ASSET"
+          gh release upload "${GITHUB_REF_NAME}" "$ASSET" --repo "${GITHUB_REPOSITORY}" --clobber
