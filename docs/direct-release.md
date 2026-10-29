@@ -12,22 +12,22 @@ Production builds always use the public release store key already embedded in in
 
 1. Confirm the production website is healthy and its licensing and update APIs respond. Note the currently active website versions for rollback.
 2. Prepare all app changes on a branch of public `filearchitect/app/main`. Keep unrelated work in another branch.
-3. Choose a version greater than every version already released or tagged across both app repositories. A failed/tagged version is never reused. For the current recovery, use **0.12.2**: private 0.12.0 and failed public 0.12.1 tags exist.
-4. Run `node scripts/version-sync.mjs 0.12.2`. Review and commit `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, and `CHANGELOG.md`. Run `node scripts/version-check.mjs 0.12.2`, `pnpm install --frozen-lockfile`, `pnpm test`, and `pnpm build`. Run the `Release (Tag)` workflow on the branch with both build inputs enabled; it produces dry-run artifacts without publishing.
+3. Choose a version greater than every version already released or tagged across both app repositories. A failed/tagged version is never reused. For the current recovery, use **0.12.3**: private 0.12.0 and failed public 0.12.1/0.12.2 tags exist.
+4. Run `node scripts/version-sync.mjs 0.12.3`. Review and commit `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, and `CHANGELOG.md`. Run `node scripts/version-check.mjs 0.12.3`, `pnpm install --frozen-lockfile`, `pnpm test`, and `pnpm build`. Run the `Release (Tag)` workflow on the branch with both build inputs and secret scan enabled; it produces dry-run artifacts without publishing. On Windows, the tag version check must pass before the build starts.
 5. Verify Windows activation on a disposable local-server license key: first activation, repeat validation, full-machine-limit rejection, Account-screen state, and the no-update response. Verify Setapp behavior separately. Do not register a production license for this test.
 6. Review and merge the branch to public `main` only after the dry-run build and behavior checks pass. Confirm the merged tree is clean and current.
 
 ## Build a draft
 
-1. On public `main`, run `./scripts/tag-release.sh 0.12.2`, then push the tag to the public repository. The tag workflow creates a **draft** GitHub release and builds ARM macOS, Intel macOS, and Windows from the same commit. No workflow job publishes it automatically.
-2. Require all `Release (Tag)` jobs to pass. The macOS jobs must verify the Developer ID signature, Gatekeeper acceptance, and stapled notarization ticket before uploading. The draft must contain both `.app.tar.gz` archives and `.sig` files, both DMGs, a `latest.json` manifest, and `filearchitect_0.12.2_windows-x86_64.exe`.
+1. On public `main`, run `./scripts/tag-release.sh 0.12.3`, then push the tag to the public repository. The tag workflow creates a **draft** GitHub release and builds ARM macOS, Intel macOS, and Windows from the same commit. No workflow job publishes it automatically.
+2. Require all `Release (Tag)` jobs to pass. The macOS jobs must verify the Developer ID signature, Gatekeeper acceptance, and stapled notarization ticket before uploading. The draft must contain both `.app.tar.gz` archives and `.sig` files, both DMGs, a `latest.json` manifest, and `filearchitect_0.12.3_windows-x86_64.exe`.
 3. Inspect `latest.json`: version, both macOS architecture keys, URLs to this exact tag, and signatures equal to the matching `.sig` assets. Download each asset and record SHA-256 checksums. Test the DMG/app on a clean Mac; test the standalone EXE from a clean folder on Windows. Confirm production API URL, activation, Account state, update check, and Windows download behavior.
 
 ## Publish and activate
 
-1. Publish the verified GitHub draft. Confirm `https://github.com/filearchitect/app/releases/latest/download/latest.json` now reports 0.12.2 and both macOS archives download. Confirm the Windows latest-release API advertises 0.12.2 and its EXE downloads.
-2. Create **inactive** macOS and Windows 0.12.2 records in the website admin with the verified GitHub asset URLs and updater signature. Check each record and its links; then activate both. Confirm the website update APIs and `/download` point to 0.12.2.
-3. From an installed 0.11.22 Mac, run Check for Updates and complete the signed update. On Windows, confirm Check for Updates offers the manual download and the new EXE launches. Confirm the app reports 0.12.2 after installation.
+1. Publish the verified GitHub draft. Confirm `https://github.com/filearchitect/app/releases/latest/download/latest.json` now reports 0.12.3 and both macOS archives download. Confirm the Windows latest-release API advertises 0.12.3 and its EXE downloads.
+2. Create **inactive** macOS and Windows 0.12.3 records in the website admin with the verified GitHub asset URLs and updater signature. Check each record and its links; then activate both. Confirm the website update APIs and `/download` point to 0.12.3.
+3. From an installed 0.11.22 Mac, run Check for Updates and complete the signed update. On Windows, confirm Check for Updates offers the manual download and the new EXE launches. Confirm the app reports 0.12.3 after installation.
 
 ## Stop and rollback
 
