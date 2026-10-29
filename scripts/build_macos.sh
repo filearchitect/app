@@ -16,9 +16,20 @@ if [[ -z "${APPLE_ID:-}" || -z "${APPLE_PASSWORD:-}" || -z "${APPLE_TEAM_ID:-}" 
   echo "APPLE_ID, APPLE_PASSWORD, and APPLE_TEAM_ID are required for notarization."
   exit 1
 fi
-if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-${TAURI_PRIVATE_KEY:-}}" && ! -f "${TAURI_SIGNING_PRIVATE_KEY_PATH:-${TAURI_PRIVATE_KEY_PATH:-}}" ]]; then
+KEY_PATH="${TAURI_SIGNING_PRIVATE_KEY_PATH:-${TAURI_PRIVATE_KEY_PATH:-}}"
+if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-${TAURI_PRIVATE_KEY:-}}" && ! -f "$KEY_PATH" ]]; then
   echo "A Tauri updater signing private key or key path is required."
   exit 1
+fi
+if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" && -n "$KEY_PATH" ]]; then
+  if grep -q 'untrusted comment:' "$KEY_PATH"; then
+    export TAURI_SIGNING_PRIVATE_KEY="$(base64 < "$KEY_PATH" | tr -d '\r\n')"
+  else
+    export TAURI_SIGNING_PRIVATE_KEY="$(tr -d '\r\n' < "$KEY_PATH")"
+  fi
+fi
+if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" && -n "${TAURI_PRIVATE_KEY:-}" ]]; then
+  export TAURI_SIGNING_PRIVATE_KEY="$TAURI_PRIVATE_KEY"
 fi
 if [[ "${TAURI_USE_APPLE_CERT_IMPORT:-false}" != "true" ]]; then
   unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD
