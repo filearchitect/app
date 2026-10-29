@@ -18,37 +18,36 @@ export async function makeApiRequest<T>(
   endpoint: string,
   payload: Record<string, any>
 ): Promise<T> {
-  console.log("payload", payload);
+  if (!API_BASE_URL) {
+    throw new Error("VITE_API_URL is not configured");
+  }
 
-  try {
-    if (!API_BASE_URL) {
-      throw new Error("VITE_API_URL is not configured");
-    }
-
-    const url = `${API_BASE_URL}${endpoint}`;
-    console.log("Making API request to:", url);
-
-    const response = await fetch(url, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
       body: JSON.stringify(payload),
-    });
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `HTTP error! status: ${response.status}, message: ${errorText}`
-      );
-    }
-
-    const json = await response.json();
-    console.log("Response from API request:", json);
-    return json;
-  } catch (error) {
-    console.error("API request failed:", error);
-    throw error;
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    const serverMessage =
+      body &&
+      typeof body === "object" &&
+      "message" in body &&
+      typeof body.message === "string"
+        ? body.message
+        : `Request failed with status ${response.status}`;
+    const message = Object.entries(payload).reduce((text, [key, value]) => {
+      if (!/key|token|password|secret/i.test(key) || typeof value !== "string" || !value) {
+        return text;
+      }
+      return text.replaceAll(value, "[redacted]");
+    }, serverMessage);
+    throw new Error(message);
   }
+
+  return (await response.json()) as T;
 }

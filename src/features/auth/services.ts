@@ -54,7 +54,6 @@ async function readOverrideSettings(): Promise<OverrideSettings | null> {
       const fileContent = await readTextFile(overrideFilePath);
       const settings = JSON.parse(fileContent) as OverrideSettings;
 
-      console.log("🔧 Override settings loaded from fa.json:", settings);
       return settings;
     }
 
@@ -245,8 +244,6 @@ export class LicenseService {
       machine_name: machineId,
     });
 
-    console.log("response from updateLicenseOrCreateTrial", response);
-
     const trialLicense = this.convertToStoredLicense(response.data.license);
     await setStoreValue(LICENSE_KEY, trialLicense);
     return trialLicense;
@@ -258,7 +255,7 @@ export class LicenseService {
    * @returns The updated license
    */
   static async validateLicense(licenseKey: string): Promise<StoredLicense> {
-    const validationResponse = await makeApiRequest<ServerLicense>(
+    const validationResponse = await makeApiRequest<unknown>(
       "/licenses/validation",
       {
         license_key: licenseKey,
@@ -266,7 +263,36 @@ export class LicenseService {
       }
     );
 
-    return this.convertToStoredLicense(validationResponse, licenseKey);
+    if (!validationResponse || typeof validationResponse !== "object") {
+      throw new LicenseValidationError("Invalid license response from server");
+    }
+
+    const response = validationResponse as Partial<ServerLicense> & {
+      valid?: boolean;
+      message?: string;
+    };
+    if (response.valid === false) {
+      throw new LicenseValidationError(
+        (response.message || "License validation failed").replaceAll(
+          licenseKey,
+          "[redacted]"
+        )
+      );
+    }
+    if (
+      typeof response.uuid !== "string" ||
+      !["trial", "once", "yearly"].includes(response.type || "") ||
+      !(response.expires_at === null || typeof response.expires_at === "string")
+    ) {
+      throw new LicenseValidationError("Invalid license response from server");
+    }
+
+    const validatedLicense = this.convertToStoredLicense(
+      response as ServerLicense,
+      licenseKey
+    );
+    await setStoreValue(LICENSE_KEY, validatedLicense);
+    return validatedLicense;
   }
 
   /**
@@ -398,8 +424,6 @@ export class LicenseService {
 
     try {
       const currentLicense = await this.getCurrentLicense();
-
-      console.log("currentLicense", currentLicense);
 
       // If no local license is set, create a trial license
       if (!currentLicense) {

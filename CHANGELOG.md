@@ -4,6 +4,19 @@
 
 - No unreleased changes yet.
 
+## 0.12.1
+
+### Fixed
+
+- Persist direct-sale license activation immediately and reject invalid or machine-limit responses without replacing the current license.
+- Read legacy stored license values safely while preserving paid licenses when storage is malformed.
+- Remove license keys from API diagnostics and activation errors.
+
+### Changed
+
+- Build direct-sale releases from the public production repository and keep them in draft until both platforms pass verification.
+- Verify macOS signing and notarization before uploading release assets; give Windows executables versioned names.
+
 ## 0.11.22
 
 ### Fixed

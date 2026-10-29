@@ -59,7 +59,7 @@ const CheckIcon = () => (
 );
 
 const AccountPreferences: React.FC = () => {
-  const { license, isLoading, error, activateLicense, refreshLicense } =
+  const { license, isLoading, error, activateLicense } =
     useAuthContext();
   const isSetappUser = shouldUseSetappEntitlement(license);
   const entitlements = getLicenseEntitlements(license);
@@ -73,13 +73,10 @@ const AccountPreferences: React.FC = () => {
 
     setIsActivating(true);
     try {
-      const result = await activateLicense(licenseKey.trim());
-      if (result) {
-        await refreshLicense();
-        toast.success("License activated successfully");
-        setLicenseKey("");
-        setIsDialogOpen(false);
-      }
+      await activateLicense(licenseKey.trim());
+      toast.success("License activated successfully");
+      setLicenseKey("");
+      setIsDialogOpen(false);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to activate license"
@@ -99,20 +96,17 @@ const AccountPreferences: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Card className="p-6 bg-destructive/10">
-        <div className="text-destructive">Error loading license: {error}</div>
-      </Card>
-    );
-  }
-
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "PPP 'at' pp");
   };
 
   return (
     <div className="">
+      {error && (
+        <Card className="p-6 bg-destructive/10">
+          <div className="text-destructive">{error}</div>
+        </Card>
+      )}
       {!license && !isSetappBuild() && (
         <div className="p-6">
           <h3 className="text-base font-semibold mb-6">Activate License</h3>

@@ -20,6 +20,7 @@ if (!semverPattern.test(version)) {
 const packageJsonPath = "package.json";
 const tauriConfigPath = "src-tauri/tauri.conf.json";
 const cargoPath = "src-tauri/Cargo.toml";
+const cargoLockPath = "src-tauri/Cargo.lock";
 
 const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 pkg.version = version;
@@ -40,5 +41,12 @@ if (!/^version = ".*"$/m.test(cargo)) {
 }
 
 fs.writeFileSync(cargoPath, nextCargo);
+
+const cargoLock = fs.readFileSync(cargoLockPath, "utf8");
+const packageEntry = /(?<=\[\[package\]\]\nname = "filearchitect-app"\nversion = ")[^"]+(?=")/;
+if (!packageEntry.test(cargoLock)) {
+  throw new Error("Could not update filearchitect-app in Cargo.lock");
+}
+fs.writeFileSync(cargoLockPath, cargoLock.replace(packageEntry, version));
 
 console.log(`Synchronized app version to ${version}`);

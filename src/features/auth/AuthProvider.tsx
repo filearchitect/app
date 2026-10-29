@@ -21,7 +21,7 @@ interface AuthContextType {
   isLicenseExpired: boolean;
   isInitialized: boolean;
   setIsLicenseExpired: (expired: boolean) => void;
-  activateLicense: (licenseKey: string) => Promise<StoredLicense | null>;
+  activateLicense: (licenseKey: string) => Promise<StoredLicense>;
   refreshLicense: () => Promise<StoredLicense | null>;
   validateLicense: () => Promise<void>;
   setLicense: (license: StoredLicense | null) => void;
@@ -111,8 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? `License error: ${err.message}`
           : handleError(err);
       setError(errorMessage);
-      setIsLicenseExpired(true);
-      return null;
+      // A failed activation must not change the existing license's status.
+      throw err instanceof Error ? err : new LicenseValidationError(errorMessage);
     } finally {
       setIsLoading(false);
     }

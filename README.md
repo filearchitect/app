@@ -109,76 +109,11 @@ The `VITE_MAX_LINES_FREE_VERSION` variable controls how many lines trial users c
 
 **Note:** These overrides only work in development mode (`npm run tauri dev`) and will be ignored in production builds.
 
-### Build and deploy
+### Direct-sale release
 
-```bash
-scripts/build.sh
-```
+Production builds and publication follow the [direct-sale release runbook](docs/direct-release.md). The public `filearchitect/app` repository is the release source of truth. Its tag workflow creates a draft containing signed macOS updater archives, DMGs, and the Windows executable. After verification, publish the GitHub release and activate the matching website download records.
 
-### Building Windows on macOS (cross-compile)
-
-You can build the Windows x64 executable from macOS using the provided script. This uses [xwin](https://github.com/Jake-Shadle/xwin) for the Windows CRT/SDK and LLVM (clang-cl, lld-link) for cross-compilation.
-
-#### Prerequisites
-
-1. **Rust Windows target**
-
-   ```bash
-   rustup target add x86_64-pc-windows-msvc
-   ```
-
-2. **LLVM and LLD** (Homebrew; keg-only, so not on PATH by default)
-
-   ```bash
-   brew install llvm lld
-   ```
-
-   - `llvm` provides `clang-cl` and `llvm-lib` (C/C++ compiler and archiver for the Windows target).
-   - `lld` provides `lld-link` (linker). The main `llvm` formula does not include it.
-
-3. **xwin** (downloads and unpacks the Windows CRT and SDK for use by clang)
-   ```bash
-   cargo install xwin
-   ```
-
-#### First run
-
-The first time you run the build, `xwin splat` will download and extract the Windows CRT and SDK to `~/.xwin` (or `$XWIN_DIR` if set). This is one-time.
-
-#### Build
-
-From the project root:
-
-```bash
-./scripts/build_windows.sh
-```
-
-The script will:
-
-- Ensure LLVM and LLD are on `PATH`.
-- Run `xwin splat` if `~/.xwin` is not set up.
-- Set cross-compilation env vars (`CC`, `AR`, `CFLAGS`, `RUSTFLAGS`, etc.) for `x86_64-pc-windows-msvc`.
-- Clean `dist/` and `src-tauri/target/`, then run the production Tauri build with `--target x86_64-pc-windows-msvc --no-bundle`.
-- Optionally deploy: upload the `.exe` to Backblaze B2 and notify the website API (same flow as the macOS build script).
-
-**Output:** The Windows executable is produced at:
-
-```
-src-tauri/target/x86_64-pc-windows-msvc/release/filearchitect-app.exe
-```
-
-**Note:** The NSIS/MSI installer is not created when cross-compiling from macOS (`--no-bundle`). Only the `.exe` is built. To generate installers, build on Windows.
-
-#### Deploy (optional)
-
-When the script asks “Do you want to deploy this build?”, answering **Y** will:
-
-1. Ask for the version (defaults to the one in `package.json`).
-2. Upload the exe to B2 as `releases/File Architect_<version>_x64.exe`.
-3. If a minisign signature file exists (`filearchitect-app.exe.sig`), upload it too (for the in-app updater).
-4. POST the version and download URL to `https://filearchitect.com/api/updates-.../windows`.
-
-**Deploy prerequisites:** `b2` CLI installed and authorized, and `UPDATE_API_PASSWORD` must be set in your environment. For in-app updater support, sign the exe with minisign and place the `.sig` file next to the exe before deploying.
+Local `scripts/build_macos.sh` and `scripts/build_windows.sh` build only. They never publish or change versions.
 
 ### Additional notes
 
