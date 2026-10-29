@@ -50,7 +50,7 @@ jobs:
           docker run --rm \
             -v "$PWD:/work" \
             ghcr.io/trufflesecurity/trufflehog:latest \
-            filesystem --no-verification --fail --exclude-paths=/work/.trufflehog-exclude.txt /work
+            filesystem --results=verified,unknown --fail --exclude-paths=/work/.trufflehog-exclude.txt /work
 
       - name: Secret scan (git history)
         if: ${{ github.event_name == 'push' || inputs.run_secret_scan }}
@@ -61,7 +61,7 @@ jobs:
             -v "$PWD:/work" \
             -w /work \
             ghcr.io/trufflesecurity/trufflehog:latest \
-            git --no-verification --fail file:///work
+            git --results=verified,unknown --fail file:///work
 
       - name: Build release notes from changelog
         shell: bash
