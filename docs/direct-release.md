@@ -34,3 +34,5 @@ Production builds always use the public release store key already embedded in in
 If any build, notarization, signature, standalone launch, or licensing check fails, leave the GitHub release in draft and the website records inactive. If post-publication checks fail, set the GitHub release back to draft and reactivate the previous website records. Users who have already installed the new version require a subsequent fix; rollback does not downgrade them.
 
 Local `build_macos.sh` and `build_windows.sh` only build and verify their respective targets. They never change versions, delete the target directory, upload to B2, or publish website records. `build_all.sh` is retired to prevent mixing macOS and cross-compiled Windows artifacts.
+
+Windows local builds use the Visual Studio C++ toolchain and its native `link.exe` linker. Run from a Visual Studio Developer Command Prompt if the linker is not on `PATH`. The old repository-wide `lld-link` override was removed because it broke native builds on Windows machines without LLVM.
