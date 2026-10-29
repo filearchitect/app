@@ -18,11 +18,11 @@ const packageVersion = JSON.parse(
 const tauriVersion = JSON.parse(fs.readFileSync(tauriConfigPath, "utf8")).version;
 const cargoVersionMatch = fs
   .readFileSync(cargoPath, "utf8")
-  .match(/^version = "(.*)"$/m);
+  .match(/^version = "([^"]+)"\r?$/m);
 const cargoVersion = cargoVersionMatch ? cargoVersionMatch[1] : null;
 const cargoLockVersion = fs
   .readFileSync(cargoLockPath, "utf8")
-  .match(/\[\[package\]\]\nname = "filearchitect-app"\nversion = "([^"]+)"/)?.[1] ?? null;
+  .match(/\[\[package\]\]\r?\nname = "filearchitect-app"\r?\nversion = "([^"]+)"/)?.[1] ?? null;
 
 const versions = {
   packageJson: packageVersion,

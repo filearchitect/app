@@ -4,7 +4,7 @@
 
 - No unreleased changes yet.
 
-## 0.12.2
+## 0.12.3
 
 ### Fixed
 
@@ -12,11 +12,16 @@
 - Read legacy stored license values safely while preserving paid licenses when storage is malformed.
 - Remove license keys from API diagnostics and activation errors.
 - Prevent a historical commit ID from blocking the release secret scan as an unverified token.
+- Accept Windows line endings in the release version checks.
 
 ### Changed
 
 - Build direct-sale releases from the public production repository and keep them in draft until both platforms pass verification.
 - Verify macOS signing and notarization before uploading release assets; give Windows executables versioned names.
+
+## 0.12.2
+
+- Release tag was not published because the Windows version check did not accept `Cargo.lock` line endings.
 
 ## 0.12.1
 
