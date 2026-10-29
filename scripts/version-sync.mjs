@@ -32,18 +32,18 @@ fs.writeFileSync(tauriConfigPath, JSON.stringify(tauri, null, 2) + "\n");
 
 const cargo = fs.readFileSync(cargoPath, "utf8");
 const nextCargo = cargo.replace(
-  /^version = ".*"$/m,
+  /^version = "[^"]+"\r?$/m,
   `version = "${version}"`
 );
 
-if (!/^version = ".*"$/m.test(cargo)) {
+if (!/^version = "[^"]+"\r?$/m.test(cargo)) {
   throw new Error("Could not update src-tauri/Cargo.toml version");
 }
 
 fs.writeFileSync(cargoPath, nextCargo);
 
 const cargoLock = fs.readFileSync(cargoLockPath, "utf8");
-const packageEntry = /(?<=\[\[package\]\]\nname = "filearchitect-app"\nversion = ")[^"]+(?=")/;
+const packageEntry = /(?<=\[\[package\]\]\r?\nname = "filearchitect-app"\r?\nversion = ")[^"]+(?=")/;
 if (!packageEntry.test(cargoLock)) {
   throw new Error("Could not update filearchitect-app in Cargo.lock");
 }
