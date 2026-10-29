@@ -6,6 +6,8 @@ The public `filearchitect/app` repository is the production app. Existing 0.11.2
 
 The website (`filearchitect-website`) keeps separate download records. Keep those records inactive until the matching public GitHub release and files have been verified. Do not use an old B2 artifact for a new GitHub release. The Setapp release is a separate flow in [setapp-release.md](setapp-release.md).
 
+Production builds always use the public release store key already embedded in installed versions. Developer `.env` overrides are ignored for that key in production so local and CI artifacts can read the same stored license.
+
 ## Prepare
 
 1. Confirm the production website is healthy and its licensing and update APIs respond. Note the currently active website versions for rollback.

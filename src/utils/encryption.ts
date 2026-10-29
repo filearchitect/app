@@ -1,5 +1,10 @@
+// Existing public releases use this store key. A developer's local .env must
+// not produce a production build that cannot read those installations.
+const PUBLIC_RELEASE_STORE_KEY = "FileArchitect-Store-Key-v1";
 const ENCRYPTION_KEY =
-  import.meta.env.VITE_STORE_ENCRYPTION_KEY ?? "FileArchitect-Store-Key-v1";
+  import.meta.env.VITE_APP_ENV === "production"
+    ? PUBLIC_RELEASE_STORE_KEY
+    : import.meta.env.VITE_STORE_ENCRYPTION_KEY ?? PUBLIC_RELEASE_STORE_KEY;
 
 function xorEncrypt(text: string, key: string): string {
   if (!key || typeof key !== "string") {
