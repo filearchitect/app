@@ -481,7 +481,7 @@ jobs:
 
   build-windows:
     name: Build Windows
-    if: ${{ (github.event_name == 'push' && !contains(github.ref_name, '-test')) || (github.event_name == 'workflow_dispatch' && inputs.build_windows) }}
+    if: ${{ always() && ((github.event_name == 'push' && !contains(github.ref_name, '-test') && needs.create-release.result == 'success') || (github.event_name == 'workflow_dispatch' && inputs.build_windows)) }}
     needs: create-release
     runs-on: windows-latest
     env:
@@ -497,6 +497,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate app version matches tag
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -542,6 +543,7 @@ jobs:
           pnpm tauri build --config src-tauri/tauri.production.conf.json --target x86_64-pc-windows-msvc --no-bundle
 
       - name: Upload release assets (Windows)
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -551,3 +553,11 @@ jobs:
           ASSET="filearchitect_${VERSION}_windows-x86_64.exe"
           cp "$EXE_FILE" "$ASSET"
           gh release upload "${GITHUB_REF_NAME}" "$ASSET" --repo "${GITHUB_REPOSITORY}" --clobber
+
+      - name: Upload dry-run artifact (Windows)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86_64-${{ github.run_number }}
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/filearchitect-app.exe
+          if-no-files-found: error
