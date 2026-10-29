@@ -1,4 +1,4 @@
-import { act, render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LicenseValidationError } from "../errors";
 import { LicenseService } from "../services";
@@ -85,14 +85,17 @@ const TrialAccessTestComponent = () => {
 
 // Create a component to test license activation
 const ActivationTestComponent = () => {
-  const { license, error, activateLicense } = useAuthContext();
+  const { license, error, isLicenseExpired, activateLicense } = useAuthContext();
   return (
     <div>
       <div data-testid="license-type">{license?.type}</div>
       <div data-testid="error">{error || ""}</div>
+      <div data-testid="license-expired">{String(isLicenseExpired)}</div>
       <button
         data-testid="activate-button"
-        onClick={() => activateLicense("test-key")}
+        onClick={() => {
+          void activateLicense("test-key").catch(() => {});
+        }}
       >
         Activate
       </button>
@@ -132,6 +135,31 @@ describe("AuthProvider", () => {
       }
       return this.toISOString();
     });
+  });
+
+  it("keeps the current license when a new activation fails", async () => {
+    vi.spyOn(LicenseService, "validateLicense").mockRejectedValue(
+      new LicenseValidationError("Machine limit reached")
+    );
+    vi.spyOn(LicenseService, "isLicenseExpired").mockReturnValue(false);
+    const component = render(
+      <AuthProvider>
+        <ActivationTestComponent />
+      </AuthProvider>
+    );
+
+    await waitFor(() =>
+      expect(component.getByTestId("license-type").textContent).toBe("trial")
+    );
+    fireEvent.click(component.getByTestId("activate-button"));
+
+    await waitFor(() =>
+      expect(component.getByTestId("error").textContent).toBe(
+        "Machine limit reached"
+      )
+    );
+    expect(component.getByTestId("license-type").textContent).toBe("trial");
+    expect(component.getByTestId("license-expired").textContent).toBe("false");
   });
 
   afterEach(() => {

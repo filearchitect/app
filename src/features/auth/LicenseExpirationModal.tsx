@@ -25,7 +25,7 @@ const LicenseExpirationModal: React.FC<LicenseExpirationModalProps> = ({
   onOpenChange,
 }) => {
   const [showActivateForm, setShowActivateForm] = useState(false);
-  const { activateLicense, refreshLicense, isInitialized, license, isLicenseActive } =
+  const { activateLicense, isInitialized, license, isLicenseActive } =
     useAuthContext();
 
   // Check if this is specifically an expired trial
@@ -59,13 +59,8 @@ const LicenseExpirationModal: React.FC<LicenseExpirationModalProps> = ({
   };
 
   const handleLicenseActivation = async (licenseKey: string) => {
-    const result = await activateLicense(licenseKey);
-    if (result) {
-      await refreshLicense();
-      onOpenChange(false);
-    } else {
-      throw new Error("Invalid license key");
-    }
+    await activateLicense(licenseKey);
+    onOpenChange(false);
   };
 
   // Don't show the modal until we've initialized
