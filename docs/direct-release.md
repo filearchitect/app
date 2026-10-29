@@ -11,10 +11,11 @@ Production builds always use the public release store key already embedded in in
 ## Prepare
 
 1. Confirm the production website is healthy and its licensing and update APIs respond. Note the currently active website versions for rollback.
-2. Merge all app changes to public `filearchitect/app/main`. Confirm the working tree is clean and `main` is current. Keep unrelated work in another branch.
+2. Prepare all app changes on a branch of public `filearchitect/app/main`. Keep unrelated work in another branch.
 3. Choose a version greater than every version already released or tagged across both app repositories. A failed/tagged version is never reused. For the current recovery, use **0.12.1**: private 0.12.0 exists, while public 0.11.25 is the baseline.
-4. Run `node scripts/version-sync.mjs 0.12.1`. Review and commit `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, and `CHANGELOG.md`. Run `node scripts/version-check.mjs 0.12.1`, `pnpm install --frozen-lockfile`, `pnpm test`, and `pnpm build`.
+4. Run `node scripts/version-sync.mjs 0.12.1`. Review and commit `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, and `CHANGELOG.md`. Run `node scripts/version-check.mjs 0.12.1`, `pnpm install --frozen-lockfile`, `pnpm test`, and `pnpm build`. Run the `Release (Tag)` workflow on the branch with both build inputs enabled; it produces dry-run artifacts without publishing.
 5. Verify Windows activation on a disposable local-server license key: first activation, repeat validation, full-machine-limit rejection, Account-screen state, and the no-update response. Verify Setapp behavior separately. Do not register a production license for this test.
+6. Review and merge the branch to public `main` only after the dry-run build and behavior checks pass. Confirm the merged tree is clean and current.
 
 ## Build a draft
 
