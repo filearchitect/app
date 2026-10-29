@@ -30,6 +30,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  scan-dry-run:
+    name: Secret scan (dry run)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_secret_scan }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan (filesystem)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" \
+            ghcr.io/trufflesecurity/trufflehog:latest \
+            filesystem --results=verified,unknown --fail --exclude-paths=/work/.trufflehog-exclude.txt /work
+
+      - name: Secret scan (git history)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            ghcr.io/trufflesecurity/trufflehog:latest \
+            git --results=verified,unknown --fail file:///work
+
   create-release:
     name: Create GitHub release
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
