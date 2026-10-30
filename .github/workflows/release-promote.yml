@@ -1,0 +1,43 @@
+name: Promote or Roll Back Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Verified release version (for example 0.12.4)"
+        required: true
+        type: string
+      action:
+        description: "Production action; run promote only after approving the release report"
+        required: true
+        default: promote
+        type: choice
+        options: [promote, rollback]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_API_TOKEN: ${{ secrets.RELEASE_API_TOKEN }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_ACTION: ${{ inputs.action }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ inputs.version }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run approved release action
+        shell: bash
+        run: bash scripts/release-promote.sh "$RELEASE_VERSION" "$RELEASE_ACTION"
