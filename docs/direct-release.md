@@ -1,38 +1,23 @@
-# Direct-sale app release (macOS and Windows)
+# Direct-sale release (macOS and Windows)
 
-## Source of truth
+## One source of truth
 
-The public `filearchitect/app` repository is the production app. Existing 0.11.22 installations check `https://github.com/filearchitect/app/releases/latest/download/latest.json`; Windows checks that repository's latest release API. Publish both platforms from **one commit** in this repository. The private `seblavoie/filearchitect-app` repository and its B2 release files are not an updater feed for installed 0.11.22 clients.
+Develop in the permanent public `filearchitect/app` checkout. Its GitHub release supplies the macOS Tauri updater manifest and the Windows manual installer. The website stores separate API/download records, now generated from that same release. The private `seblavoie/filearchitect-app` checkout and old B2 publishing scripts are historical and must not publish new versions. Setapp submissions are paused pending an active-user check.
 
-The website (`filearchitect-website`) keeps separate download records. Keep those records inactive until the matching public GitHub release and files have been verified. Do not use an old B2 artifact for a new GitHub release. The Setapp release is a separate flow in [setapp-release.md](setapp-release.md).
+Existing macOS 0.11.22 clients read GitHub's `releases/latest/download/latest.json` directly. Keep that URL, the embedded updater public key, and both Mac architectures compatible. Windows remains an unsigned, manual-download flow.
 
-Production builds always use the public release store key already embedded in installed versions. Developer `.env` overrides are ignored for that key in production so local and CI artifacts can read the same stored license.
+## Prepare and build
 
-## Prepare
+1. Verify the website is healthy and its release API is deployed. Note the currently active version for rollback. Confirm both repositories have the matching `RELEASE_API_TOKEN` secret; the website deploy workflow installs it into Forge's shared environment file without printing it.
+2. Choose a version greater than all published/tagged versions. Run `node scripts/version-sync.mjs <version>`, review the manifest and changelog changes, and commit. Run `node scripts/version-check.mjs <version>`, `pnpm test`, and `pnpm build`.
+3. Run the `Release (Tag)` workflow on the branch with macOS and Windows enabled. This dry run signs and notarizes both Mac builds and builds Windows; it does not publish or activate. Test Windows licensing with a disposable local-server key over Tailscale: first registration, repeat validation, machine-limit rejection, Account state, and no-update response. Check the standalone Windows executable from a clean location. Test both Mac architectures where hardware is available.
+4. Merge the verified branch into public `main`. Run `scripts/tag-release.sh <version>` and push its tag. The tag workflow creates a **draft** release, builds both Mac architectures and Windows from that commit, checks signing, notarization and Gatekeeper, creates `latest.json`, downloads and hashes all eight assets, and stages inactive website records. Require every job to pass.
+5. Review the `Verify release and stage website records` job summary: same version, both macOS signatures, all assets and checksums, Windows EXE, and inactive website state. Do not promote if an artifact or behavior check fails.
 
-1. Confirm the production website is healthy and its licensing and update APIs respond. Note the currently active website versions for rollback.
-2. Prepare all app changes on a branch of public `filearchitect/app/main`. Keep unrelated work in another branch.
-3. Choose a version greater than every version already released or tagged across both app repositories. A failed/tagged version is never reused. For the current recovery, use **0.12.3**: private 0.12.0 and failed public 0.12.1/0.12.2 tags exist.
-4. Run `node scripts/version-sync.mjs 0.12.3`. Review and commit `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, and `CHANGELOG.md`. Run `node scripts/version-check.mjs 0.12.3`, `pnpm install --frozen-lockfile`, `pnpm test`, and `pnpm build`. Run the `Release (Tag)` workflow on the branch with both build inputs and secret scan enabled; it produces dry-run artifacts without publishing. On Windows, the tag version check must pass before the build starts.
-5. Verify Windows activation on a disposable local-server license key: first activation, repeat validation, full-machine-limit rejection, Account-screen state, and the no-update response. Verify Setapp behavior separately. Do not register a production license for this test.
-6. Review and merge the branch to public `main` only after the dry-run build and behavior checks pass. Confirm the merged tree is clean and current.
+## Manual promotion
 
-## Build a draft
+After the release report is approved, manually dispatch `Promote or Roll Back Release` with the version and `promote` action. It rechecks the draft and successful tag workflow, publishes GitHub, verifies the public updater feed, asks the website to validate all assets/signatures and activate both records in one transaction, then checks the website APIs and Mac ARM/Intel/Windows download redirects. A failed check attempts website rollback and returns GitHub to draft.
 
-1. On public `main`, run `./scripts/tag-release.sh 0.12.3`, then push the tag to the public repository. The tag workflow creates a **draft** GitHub release and builds ARM macOS, Intel macOS, and Windows from the same commit. No workflow job publishes it automatically.
-2. Require all `Release (Tag)` jobs to pass. The macOS jobs must verify the Developer ID signature, Gatekeeper acceptance, and stapled notarization ticket before uploading. The draft must contain both `.app.tar.gz` archives and `.sig` files, both DMGs, a `latest.json` manifest, and `filearchitect_0.12.3_windows-x86_64.exe`.
-3. Inspect `latest.json`: version, both macOS architecture keys, URLs to this exact tag, and signatures equal to the matching `.sig` assets. Download each asset and record SHA-256 checksums. Test the DMG/app on a clean Mac; test the standalone EXE from a clean folder on Windows. Confirm production API URL, activation, Account state, update check, and Windows download behavior.
+For a post-release problem, dispatch the same workflow with `rollback`. It restores the previous website records and returns GitHub to draft. Already updated installations require a later fix; rollback does not downgrade them.
 
-## Publish and activate
-
-1. Publish the verified GitHub draft. Confirm `https://github.com/filearchitect/app/releases/latest/download/latest.json` now reports 0.12.3 and both macOS archives download. Confirm the Windows latest-release API advertises 0.12.3 and its EXE downloads.
-2. Create **inactive** macOS and Windows 0.12.3 records in the website admin with the verified GitHub asset URLs and updater signature. Check each record and its links; then activate both. Confirm the website update APIs and `/download` point to 0.12.3.
-3. From an installed 0.11.22 Mac, run Check for Updates and complete the signed update. On Windows, confirm Check for Updates offers the manual download and the new EXE launches. Confirm the app reports 0.12.3 after installation.
-
-## Stop and rollback
-
-If any build, notarization, signature, standalone launch, or licensing check fails, leave the GitHub release in draft and the website records inactive. If post-publication checks fail, set the GitHub release back to draft and reactivate the previous website records. Users who have already installed the new version require a subsequent fix; rollback does not downgrade them.
-
-Local `build_macos.sh` and `build_windows.sh` only build and verify their respective targets. They never change versions, delete the target directory, upload to B2, or publish website records. `build_all.sh` is retired to prevent mixing macOS and cross-compiled Windows artifacts.
-
-Windows local builds use the Visual Studio C++ toolchain and its native `link.exe` linker. Run from a Visual Studio Developer Command Prompt if the linker is not on `PATH`. The old repository-wide `lld-link` override was removed because it broke native builds on Windows machines without LLVM.
+Local `build_macos.sh` and `build_windows.sh` only build and verify. `build_all.sh` intentionally exits. No local script uploads artifacts or changes the advertised version.
