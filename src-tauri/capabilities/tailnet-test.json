@@ -7,7 +7,7 @@
     {
       "identifier": "http:allow-fetch",
       "allow": [
-        { "url": "https://sebastiens-macbook-pro-1.tailadfdf5.ts.net/*" }
+        { "url": "https://*.ts.net/*" }
       ]
     }
   ]
