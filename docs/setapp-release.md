@@ -1,5 +1,7 @@
 # Setapp Release
 
+> Submissions are paused while active installs, trials, and distribution obligations are checked. Do not remove the Setapp entitlement path until that check confirms no users need it. Direct-sale releases do not depend on this build.
+
 Setapp builds are produced locally on a Mac, not in GitHub Actions. The hosted macOS runners do not currently provide a Swift toolchain compatible with the Setapp SDK version used by this app.
 
 ## Required local inputs
