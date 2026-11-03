@@ -75,6 +75,7 @@ test -n "${RELEASE_API_TOKEN:-}" || { echo "Missing RELEASE_API_TOKEN" >&2; exit
 API_BASE="${RELEASE_API_BASE:-https://filearchitect.com/api/internal/releases}"
 curl --fail-with-body --silent --show-error --retry 3 \
   -H "Authorization: Bearer $RELEASE_API_TOKEN" \
+  -H 'Accept: application/json' \
   -H 'Content-Type: application/json' \
   --data-binary "@$WORK/payload.json" "$API_BASE/stage" > "$WORK/response.json"
 jq -e --arg version "$VERSION" '.version == $version and .state == "staged"' "$WORK/response.json" >/dev/null

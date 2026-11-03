@@ -18,6 +18,7 @@ website_action() {
   jq -n --arg version "$VERSION" '{version:$version}' > "$WORK/request.json"
   curl --fail-with-body --silent --show-error --retry 3 \
     -H "Authorization: Bearer $RELEASE_API_TOKEN" \
+    -H 'Accept: application/json' \
     -H 'Content-Type: application/json' \
     --data-binary "@$WORK/request.json" "$API_BASE/$action" > "$WORK/response.json"
   jq -e --arg version "$VERSION" --arg state "$( [[ "$action" == promote ]] && echo active || echo rolled_back )" \
@@ -47,8 +48,11 @@ recover_on_error() {
   local result=$?
   if [[ "$result" != 0 && "$PUBLISHED" == 1 ]]; then
     echo "Promotion failed; attempting rollback" >&2
-    if [[ "$PROMOTION_ATTEMPTED" == 1 ]]; then website_action rollback || true; fi
-    gh release edit "$TAG" --repo "$REPO" --draft || true
+    if [[ "$PROMOTION_ATTEMPTED" == 1 ]] && ! website_action rollback; then
+      echo "Website rollback failed. Keeping the GitHub release public so active website records still have downloadable assets." >&2
+    else
+      gh release edit "$TAG" --repo "$REPO" --draft || echo "Could not return the GitHub release to draft; manual intervention required." >&2
+    fi
   fi
   rm -rf "$WORK"
   exit "$result"
@@ -65,6 +69,18 @@ printf '%s' "$MANIFEST" | jq -e --arg version "$VERSION" \
 
 LATEST="$(gh api "repos/$REPO/releases/latest")"
 printf '%s' "$LATEST" | jq -e --arg tag "$TAG" '.tag_name == $tag and .draft == false' >/dev/null
+for name in \
+  "filearchitect_${VERSION}_darwin-aarch64.dmg" \
+  "filearchitect_${VERSION}_darwin-x86_64.dmg" \
+  "filearchitect_${VERSION}_darwin-aarch64.app.tar.gz" \
+  "filearchitect_${VERSION}_darwin-aarch64.app.tar.gz.sig" \
+  "filearchitect_${VERSION}_darwin-x86_64.app.tar.gz" \
+  "filearchitect_${VERSION}_darwin-x86_64.app.tar.gz.sig" \
+  "filearchitect_${VERSION}_windows-x86_64.exe" \
+  latest.json; do
+  curl --fail --silent --show-error --location --head --retry 5 \
+    "https://github.com/$REPO/releases/download/$TAG/$name" >/dev/null
+done
 PROMOTION_ATTEMPTED=1
 website_action promote
 
