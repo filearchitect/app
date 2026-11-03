@@ -1,5 +1,4 @@
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
 import { getVersion } from "@tauri-apps/api/app";
 import { fetch } from "@tauri-apps/plugin-http";
 import { platform } from "@tauri-apps/plugin-os";
@@ -114,11 +113,6 @@ export function useAutoUpdater() {
   );
 
   const checkForUpdates = async () => {
-    if (shouldUseSetappEntitlement(license)) {
-      setLastUpdateError(null);
-      return false;
-    }
-
     const allowed = isUpdateAllowed();
     console.log("Update check - allowed?", allowed);
 
@@ -200,11 +194,6 @@ export function useAutoUpdater() {
   };
 
   const handleUpdate = useCallback(async () => {
-    if (shouldUseSetappEntitlement(license)) {
-      toast.info("Updates for the Setapp build are managed by Setapp.");
-      return;
-    }
-
     if (!isUpdateAllowed()) {
       toast.error(
         "Your update subscription has expired. Please renew your license to get updates."

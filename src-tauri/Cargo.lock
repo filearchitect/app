@@ -875,7 +875,6 @@ dependencies = [
 name = "filearchitect-app"
 version = "0.12.3"
 dependencies = [
- "cc",
  "chrono",
  "core-foundation 0.9.4",
  "core-foundation-sys",

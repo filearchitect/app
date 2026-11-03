@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_REPLACEMENT } from "@/config/constants";
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import { shouldUseSetappEntitlement } from "@/features/auth/setapp";
 import { useStructures } from "@/features/structures/StructureContext";
 import { Minus, Plus, Settings, Sparkles } from "lucide-react";
 import { FC, useCallback, useEffect, useRef, useState } from "react";
@@ -98,7 +97,6 @@ export const StructureCreatorSettings: FC<StructureCreatorSettingsProps> = ({
   );
 
   // Check if AI feature is available based on license
-  const isSetappUser = shouldUseSetappEntitlement(license);
   const isAiFeatureAvailable = license?.ai_expires_at
     ? new Date(license.ai_expires_at) > new Date()
     : true;
@@ -131,7 +129,7 @@ export const StructureCreatorSettings: FC<StructureCreatorSettingsProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {!isSetappUser && isAiFeatureAvailable && onAiGenerate && !activeStructure && (
+            {isAiFeatureAvailable && onAiGenerate && !activeStructure && (
               <IconTooltipButton
                 icon={<Sparkles className="h-4 w-4" />}
                 onClick={onAiGenerate}

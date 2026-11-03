@@ -2,7 +2,7 @@
 
 ## One source of truth
 
-Develop in the permanent public `filearchitect/app` checkout. Its GitHub release supplies the macOS Tauri updater manifest and the Windows manual installer. The website stores separate API/download records, now generated from that same release. The private `seblavoie/filearchitect-app` checkout and old B2 publishing scripts are historical and must not publish new versions. Setapp submissions are paused pending an active-user check.
+Develop in the permanent public `filearchitect/app` checkout. Its GitHub release supplies the macOS Tauri updater manifest and the Windows manual installer. The website stores separate API/download records, now generated from that same release. The private `seblavoie/filearchitect-app` checkout and old B2 publishing scripts are historical and must not publish new versions. Setapp was retired after confirming zero active installs and trials; only the direct-sale build is released.
 
 Existing macOS 0.11.22 clients read GitHub's `releases/latest/download/latest.json` directly. Keep that URL, the embedded updater public key, and both Mac architectures compatible. Windows remains an unsigned, manual-download flow.
 

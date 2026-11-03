@@ -10,11 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/features/auth/AuthProvider";
-import {
-  getLicenseEntitlements,
-  isSetappBuild,
-  shouldUseSetappEntitlement,
-} from "@/features/auth/setapp";
 import { appUrl, openLink } from "@/lib/utils";
 import { format } from "date-fns";
 import React, { useState } from "react";
@@ -61,8 +56,6 @@ const CheckIcon = () => (
 const AccountPreferences: React.FC = () => {
   const { license, isLoading, error, activateLicense } =
     useAuthContext();
-  const isSetappUser = shouldUseSetappEntitlement(license);
-  const entitlements = getLicenseEntitlements(license);
   const [licenseKey, setLicenseKey] = useState("");
   const [isActivating, setIsActivating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -107,7 +100,7 @@ const AccountPreferences: React.FC = () => {
           <div className="text-destructive">{error}</div>
         </Card>
       )}
-      {!license && !isSetappBuild() && (
+      {!license && (
         <div className="p-6">
           <h3 className="text-base font-semibold mb-6">Activate License</h3>
           <form onSubmit={handleActivateLicense} className="space-y-4">
@@ -130,12 +123,9 @@ const AccountPreferences: React.FC = () => {
       {license && (
         <>
           <Card className="p-6">
-            <h3 className="text-base font-semibold mb-6">
-              {isSetappUser ? "Setapp Access" : "License Information"}
-            </h3>
+            <h3 className="text-base font-semibold mb-6">License Information</h3>
             <div className="space-y-5">
-              {!isSetappUser && (
-                <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                   <div className="text-sm text-muted-foreground">
                     License Type
                   </div>
@@ -150,8 +140,7 @@ const AccountPreferences: React.FC = () => {
                       {license.type}
                     </Badge>
                   </div>
-                </div>
-              )}
+              </div>
 
               {license.license_key && (
                 <div className="grid grid-cols-2 gap-4">
@@ -166,29 +155,14 @@ const AccountPreferences: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-sm text-muted-foreground">
-                  {isSetappUser ? "Status" : "Expires At"}
+                  Expires At
                 </div>
                 <div className="text-sm font-medium">
-                  {isSetappUser
-                    ? entitlements.hasCoreAccess
-                      ? "Active"
-                      : "Inactive"
-                    : license.expires_at
+                  {license.expires_at
                     ? formatDate(license.expires_at)
                     : "Never"}
                 </div>
               </div>
-
-              {isSetappUser && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-sm text-muted-foreground">
-                      Managed By
-                    </div>
-                    <div className="text-sm font-medium">Setapp</div>
-                  </div>
-                </>
-              )}
 
               {import.meta.env.DEV && (
                 <div className="grid grid-cols-2 gap-4">
@@ -211,7 +185,7 @@ const AccountPreferences: React.FC = () => {
         </>
       )}
 
-      {!isSetappUser && (license?.type === "once" || license?.type === "yearly") && (
+      {(license?.type === "once" || license?.type === "yearly") && (
         <div className="flex justify-end py-6">
           <Button
             variant="outline"
@@ -222,7 +196,7 @@ const AccountPreferences: React.FC = () => {
         </div>
       )}
 
-      {!isSetappUser && license?.type === "trial" && (
+      {license?.type === "trial" && (
         <>
           <Card className="p-6 mt-6">
             <h3 className="">License Status</h3>
