@@ -7,7 +7,7 @@
     {
       "identifier": "http:allow-fetch",
       "allow": [
-        { "url": "https://*.ts.net/*" }
+        { "url": "http://*.ts.net:8374/*" }
       ]
     }
   ]
