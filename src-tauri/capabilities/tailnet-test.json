@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "tailnet-test",
+  "description": "Private Windows licensing test against the Mac development server",
+  "windows": ["main"],
+  "permissions": [
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "https://sebastiens-macbook-pro-1.tailadfdf5.ts.net/*" }
+      ]
+    }
+  ]
+}
