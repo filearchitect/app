@@ -1,5 +1,5 @@
 import { makeApiRequest } from "@/api/http";
-import { setStoreValue } from "@/api/store";
+import { getStoreValue, setStoreValue } from "@/api/store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LicenseValidationError } from "../errors";
 import { LicenseService, MachineIdService } from "../services";
@@ -65,5 +65,32 @@ describe("direct license activation", () => {
       LicenseValidationError
     );
     expect(setStoreValue).not.toHaveBeenCalled();
+  });
+
+  it("replaces a legacy Setapp entitlement before checking direct access", async () => {
+    vi.mocked(getStoreValue).mockResolvedValue({
+      source: "setapp",
+      type: "once",
+      license_key: null,
+      expires_at: null,
+    });
+    const trial = {
+      uuid: "trial-uuid",
+      source: "trial" as const,
+      type: "trial" as const,
+      license_key: null,
+      expires_at: "2026-12-01T00:00:00Z",
+      ai_expires_at: null,
+      updates_expires_at: null,
+      last_checked_at: "2026-11-01T00:00:00Z",
+    };
+    const createTrial = vi
+      .spyOn(LicenseService, "updateLicenseOrCreateTrial")
+      .mockResolvedValue(trial);
+
+    expect(await LicenseService.checkLicense()).toEqual(trial);
+    expect(setStoreValue).toHaveBeenCalledWith("license", null);
+    expect(createTrial).toHaveBeenCalledOnce();
+    createTrial.mockRestore();
   });
 });

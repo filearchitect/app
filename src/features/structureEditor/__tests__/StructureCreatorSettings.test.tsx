@@ -62,26 +62,8 @@ describe("StructureCreatorSettings", () => {
     ).toBeInTheDocument();
   });
 
-  it("hides the AI button for Setapp access", () => {
-    authMocks.license = {
-      uuid: "setapp-license",
-      source: "setapp",
-      type: "once",
-      license_key: null,
-      expires_at: null,
-      ai_expires_at: null,
-      updates_expires_at: null,
-      last_checked_at: "2026-04-01T00:00:00.000Z",
-      purchase_type: "single_app",
-      setapp_status: {
-        enabled: true,
-        available: true,
-        active: true,
-        source: "setapp",
-        purchase_type: "single_app",
-        expiration_date: null,
-      },
-    };
+  it("hides the AI button when AI access has expired", () => {
+    authMocks.license.ai_expires_at = "2020-04-01T00:00:00.000Z";
 
     render(<StructureCreatorSettings onAiGenerate={vi.fn()} />);
 

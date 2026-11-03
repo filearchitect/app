@@ -1,6 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod setapp;
 
 // -----------------
 // Imports
@@ -560,8 +559,7 @@ fn extract_zip(zip_path: String, destination_path: String) -> Result<(), String>
 fn main() {
     dotenv().ok();
 
-    #[allow(unused_mut)]
-    let mut builder = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
@@ -570,12 +568,8 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_os::init());
-
-    #[cfg(not(all(target_os = "macos", setapp_build)))]
-    {
-        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
-    }
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_updater::Builder::new().build());
 
     builder
         .setup(|app| {
@@ -623,14 +617,6 @@ fn main() {
                     let about = PredefinedMenuItem::about(handle, Some("About File Architect"), None)?;
                     let sep1 = PredefinedMenuItem::separator(handle)?;
                     let settings = MenuItem::with_id(handle, "settings", "Settings...", true, Some("CmdOrCtrl+,"))?;
-                    #[cfg(all(target_os = "macos", setapp_build))]
-                    let whats_new = MenuItem::with_id(
-                        handle,
-                        "setapp-whats-new",
-                        "What's New",
-                        true,
-                        None::<&str>,
-                    )?;
                     let sep2 = PredefinedMenuItem::separator(handle)?;
                     let services = PredefinedMenuItem::services(handle, Some("Services"))?;
                     let sep3 = PredefinedMenuItem::separator(handle)?;
@@ -643,9 +629,6 @@ fn main() {
                         handle,
                         "File Architect",
                         true,
-                        #[cfg(all(target_os = "macos", setapp_build))]
-                        &[&about, &sep1, &settings, &whats_new, &sep2, &services, &sep3, &hide, &hide_others, &show_all, &sep4, &quit],
-                        #[cfg(not(all(target_os = "macos", setapp_build)))]
                         &[&about, &sep1, &settings, &sep2, &services, &sep3, &hide, &hide_others, &show_all, &sep4, &quit],
                     )?
                 };
@@ -677,10 +660,6 @@ fn main() {
                 "settings" => {
                     let _ = app.emit("menu-settings", ());
                 }
-                #[cfg(all(target_os = "macos", setapp_build))]
-                "setapp-whats-new" => {
-                    let _ = setapp::show_setapp_release_notes();
-                }
                 _ => {}
             }
         })
@@ -699,10 +678,6 @@ fn main() {
             initialize_app,
             handle_deep_link,
             extract_zip,
-            setapp::get_setapp_status,
-            setapp::get_setapp_purchase_type,
-            setapp::show_setapp_release_notes,
-            setapp::show_setapp_release_notes_if_needed,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
