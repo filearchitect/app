@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "tailnet-test",
+  "description": "Private Windows licensing test against the Mac development server",
+  "windows": ["main"],
+  "permissions": [
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "http://*.ts.net:8374/*" }
+      ]
+    }
+  ]
+}
