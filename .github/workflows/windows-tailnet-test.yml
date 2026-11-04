@@ -16,6 +16,7 @@ jobs:
     runs-on: windows-latest
     env:
       VITE_APP_ENV: local
+      VITE_TAILNET_TEST_MACHINE_ID: tailnet-${{ github.run_id }}
       VITE_APP_URL: ${{ inputs.server_url }}
       VITE_MAX_LINES_FREE_VERSION: 5
       VITE_LICENSE_CHECK_GRACE_PERIOD_HOURS: 24

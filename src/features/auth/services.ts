@@ -74,6 +74,15 @@ export class MachineIdService {
 
   static async getMachineId(): Promise<string | null> {
     try {
+      // A release-style Tailnet test build needs a fresh server identity for
+      // each run, independent of this PC's installed production app.
+      if (
+        import.meta.env.VITE_APP_ENV === "local" &&
+        import.meta.env.VITE_TAILNET_TEST_MACHINE_ID
+      ) {
+        return import.meta.env.VITE_TAILNET_TEST_MACHINE_ID;
+      }
+
       // Check for local override settings before using machine-specific state.
       const overrideSettings = await readOverrideSettings();
       if (overrideSettings?.machineId) {
