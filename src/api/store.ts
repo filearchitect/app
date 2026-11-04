@@ -5,6 +5,8 @@ import { decodeStoreValue } from "./decodeStoreValue";
 export const STORE_PATH =
   import.meta.env.VITE_APP_ENV === "production"
     ? "fa.production.json"
+    : import.meta.env.VITE_TAILNET_TEST_MACHINE_ID
+    ? `fa.${import.meta.env.VITE_TAILNET_TEST_MACHINE_ID}.json`
     : "fa.local.json";
 
 let storeInstance: Store | null = null;
