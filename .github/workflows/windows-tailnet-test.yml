@@ -1,0 +1,67 @@
+name: Windows Tailscale test build
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "Mac Tailscale website URL (http://<host>.ts.net:8374)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      VITE_APP_ENV: local
+      VITE_APP_URL: ${{ inputs.server_url }}
+      VITE_MAX_LINES_FREE_VERSION: 5
+      VITE_LICENSE_CHECK_GRACE_PERIOD_HOURS: 24
+      VITE_DEEPINFRA_API_KEY: ${{ secrets.VITE_DEEPINFRA_API_KEY || secrets.DEEPINFRA_API_KEY }}
+    steps:
+      - name: Validate private test URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$VITE_APP_URL" =~ ^http://[a-z0-9.-]+\.ts\.net:8374$ ]]; then
+            echo "Expected a private Tailscale HTTP URL ending in .ts.net:8374"
+            exit 1
+          fi
+          echo "VITE_API_URL=$VITE_APP_URL/api/v1" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: x86_64-pc-windows-msvc-tailnet
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build isolated test executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm tauri build --config src-tauri/tauri.tailnet-test.conf.json --target x86_64-pc-windows-msvc --no-bundle
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-tailnet-test-${{ github.run_number }}
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/filearchitect-app.exe
+          if-no-files-found: error
+          retention-days: 3

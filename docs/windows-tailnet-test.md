@@ -4,7 +4,7 @@ This uses the Mac's local Laravel website and database. The website is available
 
 1. Start Tailscale on the Mac and Windows PC.
 2. On the Mac, run `bash scripts/serve-local-website.sh /path/to/filearchitect-website` from the public app checkout. Keep that terminal open. The script prints the private HTTP URL.
-3. On Windows, confirm the printed URL plus `/api/updates/macos/latest` responds. From the public app checkout in PowerShell, run:
+3. On Windows, confirm the printed URL plus `/api/updates/macos/latest` responds. If Visual Studio C++ Build Tools are installed, run this from the public app checkout in PowerShell:
 
    ```powershell
    $env:VITE_APP_URL = "<private HTTP URL printed by the Mac script>"
@@ -13,6 +13,8 @@ This uses the Mac's local Laravel website and database. The website is available
    ```
 
    The extra configuration enables the private URL only for this test build. Normal and production builds include only `default-capability`.
+
+   If the Windows PC lacks the MSVC linker (`link.exe`), dispatch the **Windows Tailscale test build** GitHub workflow on the current public app branch instead. Enter the private URL printed by the Mac script. Download its short-lived artifact and run the `.exe` on the Windows PC. This test executable points to the local website; it is never attached to a release. Delete it after testing. The workflow uses the same explicit Tauri test capability and does not change the production app.
 
 4. Create a disposable key on the Mac website with `php artisan tinker` from its checkout:
 
