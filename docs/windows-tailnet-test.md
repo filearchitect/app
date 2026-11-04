@@ -12,7 +12,7 @@ This uses the Mac's local Laravel website and database. The website is available
    pnpm tauri dev --config src-tauri/tauri.tailnet-test.conf.json
    ```
 
-   The extra configuration enables the private URL only for this test build. Normal and production builds include only `default-capability`.
+   The extra configuration enables the private URL only for this test build and gives it a separate app identity, so its saved license and settings cannot overwrite the installed release. Normal and production builds include only `default-capability`.
 
    If the Windows PC lacks the MSVC linker (`link.exe`), dispatch the **Windows Tailscale test build** GitHub workflow on the current public app branch instead. Enter the private URL printed by the Mac script. Download its short-lived artifact and run the `.exe` on the Windows PC. This test executable points to the local website; it is never attached to a release. Delete it after testing. The workflow uses the same explicit Tauri test capability and does not change the production app.
 
