@@ -1,3 +1,5 @@
+> Historical plan: Setapp support was removed in November 2026 after the owner confirmed zero active installs and trials. Do not use this document as current build or release instructions. See [the direct release guide](../../direct-release.md).
+
 # Setapp Integration Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
