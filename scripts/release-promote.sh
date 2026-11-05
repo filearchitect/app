@@ -62,7 +62,7 @@ trap recover_on_error EXIT
 gh release edit "$TAG" --repo "$REPO" --draft=false
 PUBLISHED=1
 
-MANIFEST="$(curl --fail --silent --show-error --retry 5 \
+MANIFEST="$(curl --location --fail --silent --show-error --retry 5 \
   "https://github.com/$REPO/releases/latest/download/latest.json")"
 printf '%s' "$MANIFEST" | jq -e --arg version "$VERSION" \
   '.version == $version and (.platforms | keys == ["darwin-aarch64", "darwin-x86_64"])' >/dev/null
