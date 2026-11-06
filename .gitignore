@@ -41,3 +41,6 @@ archives/
 .xwin-cache
 src-tauri/.setapp-sdk/
 src-tauri/vendor/setapp/
+
+# Python release test bytecode
+__pycache__/

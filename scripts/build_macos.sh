@@ -46,6 +46,11 @@ case "$TARGET" in
   *) echo "Unsupported macOS target: $TARGET"; exit 1 ;;
 esac
 
+if [[ "$TARGET" == x86_64-apple-darwin && "$VERSION" != 0.12.4 ]]; then
+  echo "Intel builds are limited to the final 0.12.4 transition release." >&2
+  exit 1
+fi
+
 pnpm tauri build --config src-tauri/tauri.production.conf.json --target "$TARGET"
 
 BUNDLE="src-tauri/target/$TARGET/release/bundle"
