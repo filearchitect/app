@@ -1,7 +1,7 @@
 import { useAuthContext } from "@/features/auth/AuthProvider";
 import { getVersion } from "@tauri-apps/api/app";
 import { fetch } from "@tauri-apps/plugin-http";
-import { platform } from "@tauri-apps/plugin-os";
+import { arch, platform } from "@tauri-apps/plugin-os";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import { compareVersions } from "compare-versions";
@@ -24,7 +24,7 @@ type UpdateInfo = {
 const isLocalDev = import.meta.env.VITE_DEV_MODE === "true";
 // Tauri plugin updater endpoint is configured in tauri.conf / tauri.production.conf
 const expectedEndpoint =
-  "https://github.com/filearchitect/app/releases/latest/download/latest.json";
+  "https://github.com/filearchitect/app/releases/latest/download/apple-silicon.json";
 
 export function useAutoUpdater() {
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
@@ -125,6 +125,9 @@ export function useAutoUpdater() {
       setLastUpdateError(null);
       const target = await platform();
       const currentVersion = await getVersion();
+      if (target === "macos" && arch() === "x86_64") {
+        return false;
+      }
 
       console.log("Update Check Configuration:", {
         isLocalDev,
@@ -198,6 +201,13 @@ export function useAutoUpdater() {
       toast.error(
         "Your update subscription has expired. Please renew your license to get updates."
       );
+      return;
+    }
+
+    if (platform() === "macos" && arch() === "x86_64") {
+      toast.info("You’re on the final version for Intel Macs.", {
+        description: "Your license and existing features continue to work. New versions require Apple Silicon.",
+      });
       return;
     }
 

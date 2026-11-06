@@ -6,6 +6,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY5Q0VENDg1QjU2ODYxRjcKUldUM1lXaTFoZFRPK1NkRjRGVEN1V0VVeXd0SEdXL1hNOS83TnVxZnNGWXlpa2d2N1RYVTBWa2oK",
       "endpoints": [
+        "https://github.com/filearchitect/app/releases/latest/download/apple-silicon.json",
         "https://github.com/filearchitect/app/releases/latest/download/latest.json"
       ]
     },
