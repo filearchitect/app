@@ -16,40 +16,38 @@ if [[ "${RELEASE_STAGE_DRY_RUN:-0}" != 1 ]]; then
 fi
 gh release download "$TAG" --repo "$REPO" --dir "$WORK" --clobber
 
-NAMES=(
-  "filearchitect_${VERSION}_darwin-aarch64.dmg"
-  "filearchitect_${VERSION}_darwin-x86_64.dmg"
-  "filearchitect_${VERSION}_darwin-aarch64.app.tar.gz"
-  "filearchitect_${VERSION}_darwin-aarch64.app.tar.gz.sig"
-  "filearchitect_${VERSION}_darwin-x86_64.app.tar.gz"
-  "filearchitect_${VERSION}_darwin-x86_64.app.tar.gz.sig"
-  "filearchitect_${VERSION}_windows-x86_64.exe"
-  "latest.json"
-)
+source "$(dirname "$0")/release-policy.sh"
 for name in "${NAMES[@]}"; do
   test -s "$WORK/$name" || { echo "Missing or empty release asset: $name" >&2; exit 1; }
 done
 
-jq -e --arg version "$VERSION" '.version == $version and (.platforms | keys == ["darwin-aarch64", "darwin-x86_64"])' "$WORK/latest.json" >/dev/null
+jq -e --arg version "$VERSION" '.version == $version and (.platforms | has("darwin-aarch64"))' "$WORK/$MANIFEST_NAME" >/dev/null
+expected_arches="$(printf '%s\n' "${MAC_ARCHES[@]}" | jq -R . | jq -s 'sort')"
+jq -e --argjson expected "$expected_arches" '.platforms | keys == $expected' "$WORK/$MANIFEST_NAME" >/dev/null
+jq -e --arg version "$LEGACY_MAC_VERSION" '.version == $version and (.platforms | keys == ["darwin-aarch64", "darwin-x86_64"])' "$WORK/latest.json" >/dev/null
 for arch in darwin-aarch64 darwin-x86_64; do
+  expected="https://github.com/$REPO/releases/download/v$LEGACY_MAC_VERSION/filearchitect_${LEGACY_MAC_VERSION}_${arch}.app.tar.gz"
+  jq -e --arg arch "$arch" --arg url "$expected" '.platforms[$arch].url == $url' "$WORK/latest.json" >/dev/null
+done
+for arch in "${MAC_ARCHES[@]}"; do
   name="filearchitect_${VERSION}_${arch}.app.tar.gz"
   expected_url="https://github.com/${REPO}/releases/download/${TAG}/${name}"
-  actual_url="$(jq -r --arg arch "$arch" '.platforms[$arch].url' "$WORK/latest.json")"
-  actual_sig="$(jq -r --arg arch "$arch" '.platforms[$arch].signature' "$WORK/latest.json")"
+  actual_url="$(jq -r --arg arch "$arch" '.platforms[$arch].url' "$WORK/$MANIFEST_NAME")"
+  actual_sig="$(jq -r --arg arch "$arch" '.platforms[$arch].signature' "$WORK/$MANIFEST_NAME")"
   test "$actual_url" = "$expected_url"
   test "$actual_sig" = "$(cat "$WORK/$name.sig")"
 done
 
 NOTES="$(awk -v ver="$VERSION" '$0 == "## " ver { found=1; next } found && /^## / { exit } found { print }' CHANGELOG.md)"
 test -n "$NOTES" || NOTES="File Architect $VERSION"
-jq -n --arg version "$VERSION" --arg notes "$NOTES" --slurpfile manifest "$WORK/latest.json" \
+jq -n --arg version "$VERSION" --arg notes "$NOTES" --slurpfile manifest "$WORK/$MANIFEST_NAME" \
   '{version:$version,notes:$notes,manifest:$manifest[0]}' > "$WORK/payload.json"
 
 REPORT="${RELEASE_REPORT_PATH:-${RUNNER_TEMP:-/tmp}/filearchitect-release-report-${VERSION}.md}"
 {
   printf '# File Architect %s release report\n\n' "$VERSION"
   printf 'Source: `%s` at `%s`\n\n' "$TAG" "$(git rev-parse --short HEAD)"
-  printf 'Verified: two macOS archives and signatures, two DMGs, Windows EXE, updater manifest.\n\n'
+  printf 'Verified: current macOS artifacts and signatures, Windows EXE, current and legacy updater manifests.\n\n'
   printf '| Asset | SHA-256 |\n|---|---|\n'
   for name in "${NAMES[@]}"; do
     if command -v sha256sum >/dev/null 2>&1; then

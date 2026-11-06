@@ -24,14 +24,14 @@ elif name=='curl':
     if url.endswith('/promote') or url.endswith('/rollback'):
         if url.endswith('/rollback') and scenario=='rollback-failure': sys.exit(22)
         print(json.dumps({'version':'0.12.4','state':'active' if url.endswith('/promote') else 'rolled_back'}))
-    elif 'latest/download/latest.json' in url:
+    elif 'latest/download/apple-silicon.json' in url:
         if '--location' not in args: sys.exit(22)
         print('{"version":"0.12.4","platforms":{"darwin-aarch64":{},"darwin-x86_64":{}}}')
     elif '/api/updates/' in url:
         if scenario in ('postcheck-failure','rollback-failure'): sys.exit(22)
         print('{"version":"0.12.4","active":true}')
     elif '/download/' in url and 'redirect_url' in ' '.join(args):
-        print('https://github.com/filearchitect/app/releases/download/v0.12.4/test')
+        print('https://github.com/filearchitect/app/releases/download/v0.12.4/filearchitect_0.12.4_darwin-x86_64.dmg' if 'arch=intel' in url else 'https://github.com/filearchitect/app/releases/download/v0.12.4/test')
 '''
 
 class PromotionTests(unittest.TestCase):
@@ -39,6 +39,7 @@ class PromotionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/'scripts').mkdir(); (root/'bin').mkdir()
             shutil.copy(SCRIPT, root/'scripts/release-promote.sh')
+            shutil.copy(SCRIPT.parent/'release-policy.sh', root/'scripts/release-policy.sh')
             (root/'scripts/release-stage.sh').write_text('exit '+('1' if scenario=='stage-failure' else '0')+'\n')
             for name in ('gh','git','curl','node'):
                 p=root/'bin'/name; p.write_text(MOCK); p.chmod(0o755)

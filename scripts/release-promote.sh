@@ -8,6 +8,7 @@ ACTION="${2:?Specify promote or rollback}"
 [[ "$ACTION" == promote || "$ACTION" == rollback ]] || { echo "Invalid action" >&2; exit 1; }
 test -n "${RELEASE_API_TOKEN:-}" || { echo "Missing RELEASE_API_TOKEN" >&2; exit 1; }
 TAG="v$VERSION"
+source "$(dirname "$0")/release-policy.sh"
 REPO="filearchitect/app"
 API_BASE="${RELEASE_API_BASE:-https://filearchitect.com/api/internal/releases}"
 WORK="$(mktemp -d)"
@@ -63,21 +64,13 @@ gh release edit "$TAG" --repo "$REPO" --draft=false
 PUBLISHED=1
 
 MANIFEST="$(curl --location --fail --silent --show-error --retry 5 \
-  "https://github.com/$REPO/releases/latest/download/latest.json")"
+  "https://github.com/$REPO/releases/latest/download/apple-silicon.json")"
 printf '%s' "$MANIFEST" | jq -e --arg version "$VERSION" \
-  '.version == $version and (.platforms | keys == ["darwin-aarch64", "darwin-x86_64"])' >/dev/null
+  '.version == $version and (.platforms | has("darwin-aarch64"))' >/dev/null
 
 LATEST="$(gh api "repos/$REPO/releases/latest")"
 printf '%s' "$LATEST" | jq -e --arg tag "$TAG" '.tag_name == $tag and .draft == false' >/dev/null
-for name in \
-  "filearchitect_${VERSION}_darwin-aarch64.dmg" \
-  "filearchitect_${VERSION}_darwin-x86_64.dmg" \
-  "filearchitect_${VERSION}_darwin-aarch64.app.tar.gz" \
-  "filearchitect_${VERSION}_darwin-aarch64.app.tar.gz.sig" \
-  "filearchitect_${VERSION}_darwin-x86_64.app.tar.gz" \
-  "filearchitect_${VERSION}_darwin-x86_64.app.tar.gz.sig" \
-  "filearchitect_${VERSION}_windows-x86_64.exe" \
-  latest.json; do
+for name in "${NAMES[@]}"; do
   curl --fail --silent --show-error --location --head --retry 5 \
     "https://github.com/$REPO/releases/download/$TAG/$name" >/dev/null
 done
@@ -89,11 +82,14 @@ for platform in macos windows; do
     "https://filearchitect.com/api/updates/$platform/latest" \
     | jq -e --arg version "$VERSION" '.version == $version and (.active == true or .active == 1)' >/dev/null
 done
-for path in "macos" "macos?arch=intel" "windows"; do
+for path in "macos" "windows"; do
   destination="$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' \
     "https://filearchitect.com/download/$path")"
   [[ "$destination" == "https://github.com/$REPO/releases/download/$TAG/"* ]]
 done
+
+legacy_destination="$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' "https://filearchitect.com/download/macos?arch=intel")"
+[[ "$legacy_destination" == "https://github.com/$REPO/releases/download/v$LEGACY_MAC_VERSION/filearchitect_${LEGACY_MAC_VERSION}_darwin-x86_64.dmg" ]]
 
 PUBLISHED=0
 PROMOTION_ATTEMPTED=0
