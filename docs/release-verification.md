@@ -16,6 +16,12 @@ The promotion feed request needed to follow GitHub redirects. This was corrected
 
 The tag staging job depends on both builds and the Mac manifest job succeeding. Manual promotion checks for a successful push-triggered release workflow for the checked-out commit and verifies the draft assets before publication. A manual dispatch is the approval mechanism; no separate environment reviewer is configured.
 
-The complete new draft → production promotion → production rollback cycle remains unexercised on a new release. Native launch on Intel hardware and an actual update from an installed 0.11.22 Mac client were not established by the evidence above. Keep those as explicit checks for the next approved release; compatibility of the existing GitHub feed URL alone is not an end-to-end update test.
+The complete new draft → production promotion → production rollback cycle remains unexercised on a new release. Native launch on Intel hardware remains pending. The Apple Silicon legacy update path was verified on November 5 as recorded below.
 
 The owner confirmed zero Setapp active installs and trials. Runtime/build support was removed in a dedicated change. Dashboard submission status and contractual obligations were not independently verified. The historical integration plan is marked retired.
+
+## Legacy Mac update test — November 5, 2026
+
+Downloaded the official v0.11.22 Apple Silicon app archive from the public GitHub release and confirmed its embedded bundle version was 0.11.22. Verified its code signature, backed up the existing local app data, and launched the extracted copy from a temporary folder. The app automatically downloaded and installed the advertised 0.12.3 release. Its Update Ready dialog reported 0.12.3 installed; after Restart now, the app launched successfully and General preferences displayed 0.12.3. The updated temporary bundle also reported 0.12.3 on disk and passed strict deep code-signature verification.
+
+This verifies the existing 0.11.22 Apple Silicon client can fetch, install, and restart into the current GitHub release. It does not verify native Intel launch or future release promotion. No production release records were changed by this test.
