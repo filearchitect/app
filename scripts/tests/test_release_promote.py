@@ -17,21 +17,21 @@ scenario=os.environ['SCENARIO']
 if name=='gh':
     if args[:2]==['release','view']: print('true')
     elif args[:2]==['run','list']: print('success')
-    elif args[:1]==['api']: print('{"tag_name":"v0.12.4","draft":false}')
+    elif args[:1]==['api']: print('{"tag_name":"v0.13.0","draft":false}')
 elif name=='git': print('testcommit')
 elif name=='curl':
     url=args[-1]
     if url.endswith('/promote') or url.endswith('/rollback'):
         if url.endswith('/rollback') and scenario=='rollback-failure': sys.exit(22)
-        print(json.dumps({'version':'0.12.4','state':'active' if url.endswith('/promote') else 'rolled_back'}))
+        print(json.dumps({'version':'0.13.0','state':'active' if url.endswith('/promote') else 'rolled_back'}))
     elif 'latest/download/apple-silicon.json' in url:
         if '--location' not in args: sys.exit(22)
-        print('{"version":"0.12.4","platforms":{"darwin-aarch64":{},"darwin-x86_64":{}}}')
+        print('{"version":"0.13.0","platforms":{"darwin-aarch64":{},"darwin-x86_64":{}}}')
     elif '/api/updates/' in url:
         if scenario in ('postcheck-failure','rollback-failure'): sys.exit(22)
-        print('{"version":"0.12.4","active":true}')
+        print('{"version":"0.13.0","active":true}')
     elif '/download/' in url and 'redirect_url' in ' '.join(args):
-        print('https://github.com/filearchitect/app/releases/download/v0.12.4/filearchitect_0.12.4_darwin-x86_64.dmg' if 'arch=intel' in url else 'https://github.com/filearchitect/app/releases/download/v0.12.4/test')
+        print('https://github.com/filearchitect/app/releases/download/v0.13.0/filearchitect_0.13.0_darwin-x86_64.dmg' if 'arch=intel' in url else 'https://github.com/filearchitect/app/releases/download/v0.13.0/test')
 '''
 
 class PromotionTests(unittest.TestCase):
@@ -45,7 +45,7 @@ class PromotionTests(unittest.TestCase):
                 p=root/'bin'/name; p.write_text(MOCK); p.chmod(0o755)
             env=dict(os.environ, PATH=str(root/'bin')+os.pathsep+os.environ['PATH'],
                      RELEASE_API_TOKEN='disposable-test-token', SCENARIO=scenario, CALL_LOG=str(root/'calls'))
-            result=subprocess.run(['bash','scripts/release-promote.sh','0.12.4',action],cwd=root,env=env,capture_output=True,text=True)
+            result=subprocess.run(['bash','scripts/release-promote.sh','0.13.0',action],cwd=root,env=env,capture_output=True,text=True)
             return result, (root/'calls').read_text()
 
     def test_success_follows_manifest_redirect_and_promotes(self):

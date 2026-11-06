@@ -46,8 +46,8 @@ case "$TARGET" in
   *) echo "Unsupported macOS target: $TARGET"; exit 1 ;;
 esac
 
-if [[ "$TARGET" == x86_64-apple-darwin && "$VERSION" != 0.12.4 ]]; then
-  echo "Intel builds are limited to the final 0.12.4 transition release." >&2
+if [[ "$TARGET" == x86_64-apple-darwin && "$VERSION" != 0.13.0 ]]; then
+  echo "Intel builds are limited to the final 0.13.0 transition release." >&2
   exit 1
 fi
 

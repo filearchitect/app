@@ -28,8 +28,8 @@ This verifies the existing 0.11.22 Apple Silicon client can fetch, install, and 
 
 ## Intel retirement preparation — November 5, 2026
 
-The retirement policy requires one final 0.12.4 Intel transition release. Subsequent release matrices build only Apple Silicon and Windows; their required assets exclude new Intel binaries. The frozen `latest.json` remains at 0.12.4 for old clients, while `apple-silicon.json` advances. New Apple Silicon clients retain the legacy endpoint as a fallback, including if the transition release is rolled back to 0.12.3. Intel transition clients return a final-version message and skip updater requests.
+The retirement policy requires one final 0.13.0 Intel transition release. Subsequent release matrices build only Apple Silicon and Windows; their required assets exclude new Intel binaries. The frozen `latest.json` remains at 0.13.0 for old clients, while `apple-silicon.json` advances. New Apple Silicon clients retain the legacy endpoint as a fallback, including if the transition release is rolled back to 0.12.3. Intel transition clients return a final-version message and skip updater requests.
 
 Seven Python release tests passed for manifest separation, asset policy, promotion and rollback orchestration. The existing 32 frontend tests and two new updater hook tests passed; TypeScript checking and the frontend production build passed. The website suite passed 77 tests / 343 assertions, including current ARM-only metadata, rejection of a moving legacy feed, and preservation of the final Intel download. Workflow YAML and shell syntax checks passed.
 
-These are preparation checks. Publishing 0.12.4, signing its artifacts, and verifying the old-client transition against the actual bridge assets remain release gates. The current public 0.12.3 assets and metadata were not changed.
+These are preparation checks. Publishing 0.13.0, signing its artifacts, and verifying the old-client transition against the actual bridge assets remain release gates. The current public 0.12.3 assets and metadata were not changed.
