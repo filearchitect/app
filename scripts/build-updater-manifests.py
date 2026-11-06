@@ -8,10 +8,10 @@ import sys
 import tempfile
 
 version = sys.argv[1].removeprefix('v')
-if not re.fullmatch(r'\d+\.\d+\.\d+', version) or tuple(map(int, version.split('.'))) < (0, 12, 4):
-    raise SystemExit('The Intel transition policy requires version 0.12.4 or newer')
+if not re.fullmatch(r'\d+\.\d+\.\d+', version) or tuple(map(int, version.split('.'))) < (0, 13, 0):
+    raise SystemExit('The Intel transition policy requires version 0.13.0 or newer')
 repo = 'filearchitect/app'
-bridge = '0.12.4'
+bridge = '0.13.0'
 arches = ['darwin-aarch64'] + (['darwin-x86_64'] if version == bridge else [])
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)

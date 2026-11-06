@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Source after VERSION is set. 0.12.4 is the final Intel transition release.
-LEGACY_MAC_VERSION=0.12.4
+# Source after VERSION is set. 0.13.0 is the final Intel transition release.
+LEGACY_MAC_VERSION=0.13.0
 MANIFEST_NAME=apple-silicon.json
 MAC_ARCHES=(darwin-aarch64)
 if [[ "$VERSION" == "$LEGACY_MAC_VERSION" ]]; then

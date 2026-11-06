@@ -8,7 +8,7 @@ import { useAutoUpdater } from "../useAutoUpdater";
 vi.mock("@/features/auth/AuthProvider", () => ({
   useAuthContext: () => ({ license: null, isInitialized: false }),
 }));
-vi.mock("@tauri-apps/api/app", () => ({ getVersion: async () => "0.12.4" }));
+vi.mock("@tauri-apps/api/app", () => ({ getVersion: async () => "0.13.0" }));
 vi.mock("@tauri-apps/plugin-os", () => ({ platform: () => "macos", arch: vi.fn() }));
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn(async () => null) }));
 vi.mock("@tauri-apps/plugin-http", () => ({ fetch: vi.fn() }));

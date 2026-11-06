@@ -12,7 +12,7 @@ on:
         default: true
         type: boolean
       build_legacy_intel:
-        description: "Include final Intel transition build (0.12.4 dry run only)"
+        description: "Include final Intel transition build (0.13.0 dry run only)"
         default: false
         type: boolean
       build_windows:
@@ -154,7 +154,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON((github.ref_name == 'v0.12.4' || inputs.build_legacy_intel) && '[{"target_key":"darwin-aarch64","rust_target":"aarch64-apple-darwin","runner":"macos-14"},{"target_key":"darwin-x86_64","rust_target":"x86_64-apple-darwin","runner":"macos-15-intel"}]' || '[{"target_key":"darwin-aarch64","rust_target":"aarch64-apple-darwin","runner":"macos-14"}]') }}
+        include: ${{ fromJSON((github.ref_name == 'v0.13.0' || inputs.build_legacy_intel) && '[{"target_key":"darwin-aarch64","rust_target":"aarch64-apple-darwin","runner":"macos-14"},{"target_key":"darwin-x86_64","rust_target":"x86_64-apple-darwin","runner":"macos-15-intel"}]' || '[{"target_key":"darwin-aarch64","rust_target":"aarch64-apple-darwin","runner":"macos-14"}]') }}
     runs-on: ${{ matrix.runner }}
     env:
       VITE_APP_ENV: production
@@ -235,7 +235,7 @@ jobs:
 
       - name: Limit Intel to the transition release
         if: ${{ matrix.target_key == 'darwin-x86_64' }}
-        run: node scripts/version-check.mjs 0.12.4
+        run: node scripts/version-check.mjs 0.13.0
 
       - name: Validate app version matches tag
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
