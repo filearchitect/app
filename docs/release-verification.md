@@ -25,3 +25,11 @@ The owner confirmed zero Setapp active installs and trials. Runtime/build suppor
 Downloaded the official v0.11.22 Apple Silicon app archive from the public GitHub release and confirmed its embedded bundle version was 0.11.22. Verified its code signature, backed up the existing local app data, and launched the extracted copy from a temporary folder. The app automatically downloaded and installed the advertised 0.12.3 release. Its Update Ready dialog reported 0.12.3 installed; after Restart now, the app launched successfully and General preferences displayed 0.12.3. The updated temporary bundle also reported 0.12.3 on disk and passed strict deep code-signature verification.
 
 This verifies the existing 0.11.22 Apple Silicon client can fetch, install, and restart into the current GitHub release. It does not verify native Intel launch or future release promotion. No production release records were changed by this test.
+
+## Intel retirement preparation — November 5, 2026
+
+The retirement policy requires one final 0.12.4 Intel transition release. Subsequent release matrices build only Apple Silicon and Windows; their required assets exclude new Intel binaries. The frozen `latest.json` remains at 0.12.4 for old clients, while `apple-silicon.json` advances. New Apple Silicon clients retain the legacy endpoint as a fallback, including if the transition release is rolled back to 0.12.3. Intel transition clients return a final-version message and skip updater requests.
+
+Seven Python release tests passed for manifest separation, asset policy, promotion and rollback orchestration. The existing 32 frontend tests and two new updater hook tests passed; TypeScript checking and the frontend production build passed. The website suite passed 77 tests / 343 assertions, including current ARM-only metadata, rejection of a moving legacy feed, and preservation of the final Intel download. Workflow YAML and shell syntax checks passed.
+
+These are preparation checks. Publishing 0.12.4, signing its artifacts, and verifying the old-client transition against the actual bridge assets remain release gates. The current public 0.12.3 assets and metadata were not changed.
